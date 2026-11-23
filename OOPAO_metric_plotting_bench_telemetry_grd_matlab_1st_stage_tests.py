@@ -19,11 +19,11 @@ matplotlib.use('Agg')  # non-interactive backend: figures are saved to disk inst
 import matplotlib.pyplot as plt
 from functions import *
 
-save_dir = 'PAPYRIIS_2stage_CNN_RL/2026-09-23/figures_1st_stage_tests_pushpull_vs_push'   # folder where all figures are saved
+save_dir = 'PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000/figures_RL_boil_2nd_fatmoss'   # folder where all figures are saved
 save_dpi = 200
 os.makedirs(save_dir, exist_ok=True)
 
-plot_onsky    = True   # plot on-sky results (solid/dashed lines)
+plot_onsky    = False   # plot on-sky results (solid/dashed lines)
 plot_sim      = True   # plot simulation results (dotted lines)
 plot_atm      = True   # atmosphere from 1st stage DM commands
 plot_residual = True   # 1st stage residual from CL1OL2
@@ -31,21 +31,35 @@ plot_residual = True   # 1st stage residual from CL1OL2
 frequency_1st = 400    # sampling frequency of the 1st stage residual (CL1OL2, measured by the 2nd stage) and of the sim DM commands
 frequency_atm = 200    # sampling frequency of the on-sky 1st stage DM commands
 CL_gain_pyr   = 0.3
-KL_frames     = [1, -1]              # [start, end] indices for the timeseries window
+KL_frames     = [-10000, -1]              # [start, end] indices for the timeseries window
 psd_modes     = [0, 10, 20, 30, 40]  # KL mode indices to plot PSDs for
+label_1st     = "2nd stage RL"   # legend text for the on-sky 1st stage residual curves
+label_1st_sim = "2nd stage RL"   # legend text for the sim 1st stage residual curves (followed by "(sim, <sim label>)")
+
+
+
 
 # on sky data
 loaddir = 'bench_sky_04_15/arcturus_v7'
 RL_telemetry_1st = np.load(f'{loaddir}/2026-04-16T01_19_12_telemetry_data_RLiter50.npy', allow_pickle = True)
-CL1st_OL_2nd     = np.load(f'{loaddir}/2026-04-16T01_27_23_telemetry_2nd_data_CL1OL2_noCRED2.npy', allow_pickle = True)
+CL1st_OL_2nd     = np.load(f'{loaddir}/2026-04-16T01_19_37_telemetry_2nd_data_RLiter50_noCRED2.npy', allow_pickle = True)
+#2026-04-16T01_27_23_telemetry_2nd_data_CL1OL2_noCRED2
+#2026-04-16T01_23_42_telemetry_2nd_data_pythint_noCRED2
+#2026-04-16T01_19_37_telemetry_2nd_data_RLiter50_noCRED2
+
+
 
 # simulations to compare: label, folder, 1st stage results file, 2nd stage CL1OL2 results file (same folder)
 simdir = "PAPYRIIS_2stage_CNN_RL/2026-09-23"
+#results_2nd_stage_CL1OL2_r0_0.070_V0_3.002_L0_30.000_tboil_0.000_multi_layer
+#R_0/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_0.000_multi_layer
 simulations = [
-    {"label": "new interaction", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_pushpull", "file_1st": "results_1st_stage_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz", "file_2nd": "results_2nd_stage_CL1OL2_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz"},
-    {"label": "old interaction", "folder": f"{simdir}/PAPYRIIS_arcturus_v2", "file_1st": "results_1st_stage_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz", "file_2nd": "results_2nd_stage_CL1OL2.npz"},
-    # {"label": "gain = 0.6", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_pushpull_g06", "file_1st": "results_1st_stage_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz", "file_2nd": "results_2nd_stage_CL1OL2_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz"},
-    # {"label": "gain = 0.7", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_pushpull_g07", "file_1st": "results_1st_stage_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz", "file_2nd": "results_2nd_stage_CL1OL2_r0_0.070_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz"},
+    {"label": "t_boil = 50", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_15000", "file_1st": "first_stage_gain_05_fatmoss/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_50.000_multi_layer.npz", "file_2nd": "RL_50/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_50.000_multi_layer.npz"},
+    {"label": "t_boil = 200", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_15000", "file_1st": "first_stage_gain_05_fatmoss/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_200.000_multi_layer.npz", "file_2nd": "RL_200/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_200.000_multi_layer.npz"},
+    {"label": "t_boil = 400", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_15000", "file_1st": "first_stage_gain_05_fatmoss/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_400.000_multi_layer.npz", "file_2nd": "RL_400/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_50.000_multi_layer.npz"},
+    {"label": "t_boil = 1000", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_15000", "file_1st": "first_stage_gain_05_fatmoss/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_1000.000_multi_layer.npz", "file_2nd": "RL_1000/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_1000.000_multi_layer.npz"},
+    # {"label": "t_boil = 5", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_15000", "file_1st": "first_stage_gain_05/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_5.000_multi_layer.npz", "file_2nd": "RL_5/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_5.000_multi_layer.npz"},
+    # {"label": "t_boil = 0", "folder": f"{simdir}/PAPYRIIS_arcturus_v2_15000", "file_1st": "first_stage_gain_05/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_0.000_multi_layer.npz", "file_2nd": "RL_0/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_0.000_multi_layer.npz"},
 ]
 
 # colours as in the original file (on sky), sims get a dark -> light gradient of the same colour
@@ -71,7 +85,7 @@ dm_2nd_inf_sky_masked = dm_2nd_inf_sky.reshape(100, 100, 97)[pupil_mask_2, :]
 dm_2nd_inf_sim_masked = dm_2nd_inf_sim.reshape(100, 100, 97)[pupil_mask_2, :]
 
 M2C_1st = - np.load('PAPYRIIS_2stage_CNN_RL/M2C_1rst.npy')
-M2C_2nd = np.load('PAPYRIIS_2stage_CNN_RL/M2C_2nd.npy')
+M2C_2nd = np.load('PAPYRIIS_2stage_CNN_RL/M2C_KL.npy')
 
 C2M_2nd = np.linalg.pinv(M2C_2nd)
 M2P_1st = dm_1st_inf_masked @ M2C_1st
@@ -120,12 +134,12 @@ if plot_atm:
             plt.plot(sim["var_atm"], ':', color=color, label=f"Atm (sim, {sim['label']}), σ² = {sim['var_atm_total']:,.0f} nm²")
 if plot_residual:
     if plot_onsky:
-        plt.plot(coefs_var_1st_stage, '--', color=color_1st_variance, lw=2.5, label=f"1st stage (integrator), σ² = {coefs_var_1st_stage_total:,.0f} nm²")
+        plt.plot(coefs_var_1st_stage, '--', color=color_1st_variance, lw=2.5, label=f"{label_1st}, σ² = {coefs_var_1st_stage_total:,.0f} nm²")
     if plot_sim:
         for sim, color in zip(simulations, shades_1st_variance):
             if "var_1st" not in sim:
                 continue
-            plt.plot(sim["var_1st"], ':', color=color, lw=2.5, label=f"1st stage (sim, {sim['label']}), σ² = {sim['var_1st_total']:,.0f} nm²")
+            plt.plot(sim["var_1st"], ':', color=color, lw=2.5, label=f"{label_1st_sim} (sim, {sim['label']}), σ² = {sim['var_1st_total']:,.0f} nm²")
 
 plt.title(f"KL mode variance", fontsize=30)
 plt.yscale("log")
@@ -148,13 +162,13 @@ for mode in psd_modes:
     if plot_residual:
         if plot_onsky:
             f_1st, psd_1st, _ = tPSD_calculator(modes_1st_stage_masked, mode, GG_diag, frequency_1st)
-            plt.plot(f_1st, psd_1st, '--', color=color_1st_psd, lw=2.5, label="1st stage integrator")
+            plt.plot(f_1st, psd_1st, '--', color=color_1st_psd, lw=2.5, label=label_1st)
         if plot_sim:
             for sim, color in zip(simulations, shades_1st_psd):
                 if "modes_1st_masked" not in sim:
                     continue
                 f_1st, psd_1st, _ = tPSD_calculator(sim["modes_1st_masked"], mode, GG_diag, frequency_1st)
-                plt.plot(f_1st, psd_1st, ':', color=color, lw=2.5, label=f"1st stage integrator (sim, {sim['label']})")
+                plt.plot(f_1st, psd_1st, ':', color=color, lw=2.5, label=f"{label_1st_sim} (sim, {sim['label']})")
     if plot_atm:
         if plot_onsky:
             f_atm, psd_atm, _ = tPSD_calculator(modes_atm_masked, mode, GG_diag, frequency_atm)

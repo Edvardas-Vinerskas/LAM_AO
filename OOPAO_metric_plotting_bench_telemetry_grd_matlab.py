@@ -22,9 +22,10 @@ import matplotlib.pyplot as plt
 from scipy.integrate import cumulative_trapezoid
 from functions import *
 
-save_dir = 'PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v1/figures_metric_plotting/arcturus_v7'   # folder where all figures are saved
+save_dir = 'PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000/RL_0/figures_metric'   # folder where all figures are saved
 save_dpi = 200
 os.makedirs(save_dir, exist_ok=True)
+plt.rcParams['figure.figsize'] = (19, 8)  # wide default for every plt.figure(); legends go outside the axes on the right
 _fig_counter = 0
 
 def save_all_figures():
@@ -54,10 +55,7 @@ plot_timeseries      = False
 plot_tPSD            = True
 plot_onsky = True   # plot on-sky results (solid/dashed lines)
 plot_sim   = True   # plot simulation results (dotted lines)
-#TODO for the sim mismatch, you should analyse
-# influence functions
-# maybe you should apply different limits for the timeseries being analysed
-CL_gain_pyr = 0.3
+CL_gain_pyr = 0.7
 frequency_1st = 400 #should be the same as 2nd if you are using CL1OL2 with 2nd stage looking at the 1st stage residuals
 frequency_2nd = 400
 frequency_atm = 200
@@ -72,7 +70,7 @@ KL_frames_RL    = [1, -1]   # [start, end] indices for RL timeseries window
 KL_frames_int   = [1, -1]   # [start, end] indices for integrator timeseries window
 KL_frames_ideal = [1, -1]   # [start, end] indices for ideal timeseries window
 #modes for PSDs
-psd_modes = [0, 10, 20, 30, 40]   # KL mode indices to plot PSDs for
+psd_modes = [0, 3, 12, 30, 40]   # KL mode indices to plot PSDs for
 mode_1, mode_2, mode_3, mode_4, mode_5 = psd_modes
 
 # on sky data
@@ -88,11 +86,12 @@ int_telemetry_2nd   = np.load(f'{loaddir}/2026-04-16T01_23_42_telemetry_2nd_data
 CL1st_OL_2nd        = np.load(f'{loaddir}/2026-04-16T01_27_23_telemetry_2nd_data_CL1OL2_noCRED2.npy', allow_pickle = True)
 
 
-loaddir_sim = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v1"
-# RL_telemetry_2nd_sim    = np.load(f"{loaddir_sim}/results_2nd_stage.npz")
-RL_telemetry_1st_sim    = np.load(f"{loaddir_sim}/results_1st_stage_r0_0.050_V0_4.049_L0_30.000_tboil_5.000_multi_layer.npz")
-# int_telemetry_2nd_sim   = np.load(f"{loaddir_sim}/results_2nd_stage_int.npz")
-CL1st_OL_2nd_sim        = np.load(f"{loaddir_sim}/results_2nd_stage_CL1OL2.npz")
+loaddir_sim_2nd = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000"
+loaddir_sim_1st = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000"
+RL_telemetry_2nd_sim    = np.load(f"{loaddir_sim_2nd}/RL_0/results_2nd_stage_r0_0.070_V0_3.002_L0_30.000_tboil_0.000_multi_layer.npz")
+RL_telemetry_1st_sim    = np.load(f"{loaddir_sim_1st}/first_stage_gain_05/results_1st_stage_r0_0.070_V0_3.002_L0_30.000_tboil_5.000_multi_layer.npz")
+int_telemetry_2nd_sim   = np.load(f"{loaddir_sim_1st}/second_stage_gain_01/results_2nd_stage_pythint_r0_0.070_V0_3.002_L0_30.000_tboil_5.000_multi_layer.npz")
+CL1st_OL_2nd_sim        = np.load(f"{loaddir_sim_1st}/first_stage_gain_05/results_2nd_stage_CL1OL2_r0_0.070_V0_3.002_L0_30.000_tboil_5.000_multi_layer.npz")
 
 
 
@@ -112,7 +111,7 @@ dm_2nd_inf_sim_masked = dm_2nd_inf_sim.reshape(100, 100, 97)[pupil_mask_2, :]
 
 #TODO do you need a - sign here
 M2C_1st = - np.load('PAPYRIIS_2stage_CNN_RL/M2C_1rst.npy')
-M2C_2nd = np.load('PAPYRIIS_2stage_CNN_RL/M2C_2nd.npy')
+M2C_2nd = np.load('PAPYRIIS_2stage_CNN_RL/M2C_KL.npy')
 
 C2M_2nd = np.linalg.pinv(M2C_2nd)
 M2P_1st = dm_1st_inf_masked @ M2C_1st
@@ -160,9 +159,9 @@ if integrator:
 
 
 if RL and plot_sim:
-    # next_states_2nd_sim = RL_telemetry_2nd_sim['all_reconstructed_cmd'].squeeze()
-    # modes_2nd_stage_RL_sim = next_states_2nd_sim @ C2M_2nd.T
-    # modes_2nd_stage_RL_sim = modes_2nd_stage_RL_sim @ projector_kl_2nd_to_1st_sim.T
+    next_states_2nd_sim = RL_telemetry_2nd_sim['all_reconstructed_cmd'].squeeze()
+    modes_2nd_stage_RL_sim = next_states_2nd_sim @ C2M_2nd.T
+    modes_2nd_stage_RL_sim = modes_2nd_stage_RL_sim @ projector_kl_2nd_to_1st_sim.T
 
     next_states_1st_sim = CL1st_OL_2nd_sim['all_reconstructed_cmd'].squeeze()
     modes_1st_stage_RL_sim = next_states_1st_sim @ C2M_2nd.T
@@ -171,16 +170,16 @@ if RL and plot_sim:
     dm_atm_coefs_sim = RL_telemetry_1st_sim['dm_commands']
     modes_atm_RL_sim = mode_calculator_fromDM(dm_atm_coefs_sim, M2C_1st)
 
-    # frequency_RL_sim = frequency_2nd
-    # time_plot_RL_sim = np.arange(0, len(modes_2nd_stage_RL_sim) / frequency_2nd, 1 / frequency_2nd)
+    frequency_RL_sim = frequency_2nd
+    time_plot_RL_sim = np.arange(0, len(modes_2nd_stage_RL_sim) / frequency_2nd, 1 / frequency_2nd)
 
-# if integrator and plot_sim:
-    # next_states_2nd_int_sim = int_telemetry_2nd_sim['all_reconstructed_cmd'].squeeze()
-    # modes_2nd_stage_int_sim = next_states_2nd_int_sim @ C2M_2nd.T
-    # modes_2nd_stage_int_sim = modes_2nd_stage_int_sim @ projector_kl_2nd_to_1st_sim.T
+if integrator and plot_sim:
+    next_states_2nd_int_sim = int_telemetry_2nd_sim['all_reconstructed_cmd'].squeeze()
+    modes_2nd_stage_int_sim = next_states_2nd_int_sim @ C2M_2nd.T
+    modes_2nd_stage_int_sim = modes_2nd_stage_int_sim @ projector_kl_2nd_to_1st_sim.T
 
-    # frequency_int_sim = frequency_2nd
-    # time_plot_int_sim = np.arange(0, len(modes_2nd_stage_int_sim) / frequency_2nd, 1 / frequency_2nd)
+    frequency_int_sim = frequency_2nd
+    time_plot_int_sim = np.arange(0, len(modes_2nd_stage_int_sim) / frequency_2nd, 1 / frequency_2nd)
 
 
 modes_atm = modes_atm_RL
@@ -235,16 +234,16 @@ coefs_var_atm, _, coefs_var_atm_total = KL_variance_calculator(modes_atm, GG, KL
 
 if RL and plot_sim:
     coefs_var_1st_stage_masked_RL_sim, modes_1st_stage_RL_sim_masked, coefs_var_1st_stage_masked_RL_sim_total = KL_variance_calculator(modes_1st_stage_RL_sim, GG, KL_frames_RL)
-    # coefs_var_2nd_stage_masked_RL_sim, modes_2nd_stage_RL_sim_masked, coefs_var_2nd_stage_masked_RL_sim_total = KL_variance_calculator(modes_2nd_stage_RL_sim, GG, KL_frames_RL)
+    coefs_var_2nd_stage_masked_RL_sim, modes_2nd_stage_RL_sim_masked, coefs_var_2nd_stage_masked_RL_sim_total = KL_variance_calculator(modes_2nd_stage_RL_sim, GG, KL_frames_RL)
 
-# if integrator and plot_sim:
-    # coefs_var_2nd_stage_masked_int_sim, modes_2nd_stage_int_sim_masked, coefs_var_2nd_stage_masked_int_sim_total = KL_variance_calculator(modes_2nd_stage_int_sim, GG, KL_frames_int)
+if integrator and plot_sim:
+    coefs_var_2nd_stage_masked_int_sim, modes_2nd_stage_int_sim_masked, coefs_var_2nd_stage_masked_int_sim_total = KL_variance_calculator(modes_2nd_stage_int_sim, GG, KL_frames_int)
 
 if plot_sim and RL:
     coefs_var_atm_sim, _, coefs_var_atm_sim_total = KL_variance_calculator(modes_atm_sim, GG, KL_frames_int)
 
 
-plt.figure(figsize=(12, 8))
+plt.figure(figsize=(19, 8))
 if plot_onsky:
     plt.plot(coefs_var_atm, color="black", label=f"Atm, σ² = {coefs_var_atm_total:,.0f} nm²")
 if plot_sim and RL:
@@ -261,8 +260,8 @@ if integrator:
     if plot_onsky:
         var_int = np.sum(coefs_var_2nd_stage_masked_int[:70])
         plt.plot(coefs_var_2nd_stage_masked_int, color="indianred", lw=2.5, label=f"2nd stage ({label_int}), σ² = {coefs_var_2nd_stage_masked_int_total:,.0f} nm²")
-    # if plot_sim:
-        # plt.plot(coefs_var_2nd_stage_masked_int_sim, ':', color="indianred", lw=2.5, label=f"2nd stage ({label_int_sim})")
+    if plot_sim:
+        plt.plot(coefs_var_2nd_stage_masked_int_sim, ':', color="indianred", lw=2.5, label=f"2nd stage ({label_int_sim}), σ² = {coefs_var_2nd_stage_masked_int_sim_total:,.0f} nm²")
 
 
 if RL:
@@ -271,7 +270,7 @@ if RL:
         plt.plot(coefs_var_2nd_stage_masked_RL, color="red", lw=2.5, label=f"2nd stage ({label_RL}), σ² = {coefs_var_2nd_stage_masked_RL_total:,.0f} nm²")
     if plot_sim:
         plt.plot(coefs_var_1st_stage_masked_RL_sim, ':', color="cornflowerblue", lw=2.5, label=f"1st stage ({label_int_sim}), σ² = {coefs_var_1st_stage_masked_RL_sim_total:,.0f} nm²")
-        # plt.plot(coefs_var_2nd_stage_masked_RL_sim, ':', color="red", lw=2.5, label=f"2nd stage ({label_RL_sim})")
+        plt.plot(coefs_var_2nd_stage_masked_RL_sim, ':', color="red", lw=2.5, label=f"2nd stage ({label_RL_sim}), σ² = {coefs_var_2nd_stage_masked_RL_sim_total:,.0f} nm²")
 
 if ideal:
     var_ideal = np.sum(coefs_var_2nd_stage_masked_ideal[:70])
@@ -300,7 +299,7 @@ plt.xticks(fontsize=20)
 plt.yticks(fontsize=20)
 plt.grid(True, which='both', alpha=0.5)
 plt.minorticks_on()
-plt.legend(fontsize=18)
+plt.legend(fontsize=16, loc='upper left', bbox_to_anchor=(1.01, 1))
 plt.tight_layout()
 # plt.savefig(f'{loaddir}/KL_mode_variance.png', dpi=300, bbox_inches='tight')
 
@@ -347,18 +346,18 @@ if RL and plot_sim:
     residual_mode_4_curve_1st_RL_sim_full = modes_1st_stage_RL_sim[:, mode_4]
     residual_mode_5_curve_1st_RL_sim_full = modes_1st_stage_RL_sim[:, mode_5]
 
-    # residual_mode_1_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_1]
-    # residual_mode_2_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_2]
-    # residual_mode_3_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_3]
-    # residual_mode_4_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_4]
-    # residual_mode_5_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_5]
+    residual_mode_1_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_1]
+    residual_mode_2_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_2]
+    residual_mode_3_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_3]
+    residual_mode_4_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_4]
+    residual_mode_5_curve_2nd_RL_sim_full = modes_2nd_stage_RL_sim[:, mode_5]
 
-# if integrator and plot_sim:
-    # residual_mode_1_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_1]
-    # residual_mode_2_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_2]
-    # residual_mode_3_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_3]
-    # residual_mode_4_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_4]
-    # residual_mode_5_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_5]
+if integrator and plot_sim:
+    residual_mode_1_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_1]
+    residual_mode_2_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_2]
+    residual_mode_3_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_3]
+    residual_mode_4_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_4]
+    residual_mode_5_curve_2nd_int_sim_full = modes_2nd_stage_int_sim[:, mode_5]
 
 
 if RL:
@@ -409,18 +408,18 @@ if RL and plot_sim:
     PSD_residual_mode_4_freq_t_1st_RL_sim, PSD_residual_mode_4_1st_RL_sim, _ = tPSD_calculator(modes_1st_stage_RL_sim_masked, mode_4, GG_diag, frequency_1st)
     PSD_residual_mode_5_freq_t_1st_RL_sim, PSD_residual_mode_5_1st_RL_sim, _ = tPSD_calculator(modes_1st_stage_RL_sim_masked, mode_5, GG_diag, frequency_1st)
 
-    # PSD_residual_mode_1_freq_t_2nd_RL_sim, PSD_residual_mode_1_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_1, GG_diag, frequency_RL_sim)
-    # PSD_residual_mode_2_freq_t_2nd_RL_sim, PSD_residual_mode_2_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_2, GG_diag, frequency_RL_sim)
-    # PSD_residual_mode_3_freq_t_2nd_RL_sim, PSD_residual_mode_3_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_3, GG_diag, frequency_RL_sim)
-    # PSD_residual_mode_4_freq_t_2nd_RL_sim, PSD_residual_mode_4_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_4, GG_diag, frequency_RL_sim)
-    # PSD_residual_mode_5_freq_t_2nd_RL_sim, PSD_residual_mode_5_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_5, GG_diag, frequency_RL_sim)
+    PSD_residual_mode_1_freq_t_2nd_RL_sim, PSD_residual_mode_1_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_1, GG_diag, frequency_RL_sim)
+    PSD_residual_mode_2_freq_t_2nd_RL_sim, PSD_residual_mode_2_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_2, GG_diag, frequency_RL_sim)
+    PSD_residual_mode_3_freq_t_2nd_RL_sim, PSD_residual_mode_3_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_3, GG_diag, frequency_RL_sim)
+    PSD_residual_mode_4_freq_t_2nd_RL_sim, PSD_residual_mode_4_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_4, GG_diag, frequency_RL_sim)
+    PSD_residual_mode_5_freq_t_2nd_RL_sim, PSD_residual_mode_5_2nd_RL_sim, _ = tPSD_calculator(modes_2nd_stage_RL_sim_masked, mode_5, GG_diag, frequency_RL_sim)
 
-# if integrator and plot_sim:
-    # PSD_residual_mode_1_freq_t_2nd_int_sim, PSD_residual_mode_1_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_1, GG_diag, frequency_int_sim)
-    # PSD_residual_mode_2_freq_t_2nd_int_sim, PSD_residual_mode_2_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_2, GG_diag, frequency_int_sim)
-    # PSD_residual_mode_3_freq_t_2nd_int_sim, PSD_residual_mode_3_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_3, GG_diag, frequency_int_sim)
-    # PSD_residual_mode_4_freq_t_2nd_int_sim, PSD_residual_mode_4_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_4, GG_diag, frequency_int_sim)
-    # PSD_residual_mode_5_freq_t_2nd_int_sim, PSD_residual_mode_5_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_5, GG_diag, frequency_int_sim)
+if integrator and plot_sim:
+    PSD_residual_mode_1_freq_t_2nd_int_sim, PSD_residual_mode_1_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_1, GG_diag, frequency_int_sim)
+    PSD_residual_mode_2_freq_t_2nd_int_sim, PSD_residual_mode_2_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_2, GG_diag, frequency_int_sim)
+    PSD_residual_mode_3_freq_t_2nd_int_sim, PSD_residual_mode_3_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_3, GG_diag, frequency_int_sim)
+    PSD_residual_mode_4_freq_t_2nd_int_sim, PSD_residual_mode_4_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_4, GG_diag, frequency_int_sim)
+    PSD_residual_mode_5_freq_t_2nd_int_sim, PSD_residual_mode_5_2nd_int_sim, _ = tPSD_calculator(modes_2nd_stage_int_sim_masked, mode_5, GG_diag, frequency_int_sim)
 
 if plot_sim and RL:
     PSD_atm_mode_1_freq_t_sim, PSD_atm_mode_1_sim, _ = tPSD_calculator(modes_atm_sim, mode_1, GG_diag, f_samp_atm_sim)
@@ -436,14 +435,14 @@ if plot_timeseries:
         if plot_onsky:
             plt.plot(time_plot_RL, residual_mode_1_curve_1st_RL_full, color="indianred", label=f"mode_{mode_1}_1st_stage_{label_RL}")
             plt.plot(time_plot_RL, residual_mode_1_curve_2nd_RL_full, color="red", label=f"mode_{mode_1}_2nd_stage_{label_RL}")
-        # if plot_sim:
-            # plt.plot(time_plot_RL_sim, residual_mode_1_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_1}_1st_stage_{label_int_sim}")
-            # plt.plot(time_plot_RL_sim, residual_mode_1_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_1}_2nd_stage_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(time_plot_RL_sim, residual_mode_1_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_1}_1st_stage_{label_int_sim}")
+            plt.plot(time_plot_RL_sim, residual_mode_1_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_1}_2nd_stage_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(time_plot_int, residual_mode_1_curve_2nd_int_full, color="blue", label=f"mode_{mode_1}_2nd_stage_{label_int}")
-        # if plot_sim:
-            # plt.plot(time_plot_int_sim, residual_mode_1_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_1}_2nd_stage_{label_int_sim}")
+        if plot_sim:
+            plt.plot(time_plot_int_sim, residual_mode_1_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_1}_2nd_stage_{label_int_sim}")
     if ideal:
         plt.plot(time_plot_ideal, residual_mode_1_curve_1st_ideal_full, label=f"mode_{mode_1}_1st_stage_{label_ideal}")
         plt.plot(time_plot_ideal, residual_mode_1_curve_2nd_ideal_full, label=f"mode_{mode_1}_2nd_stage_{label_ideal}")
@@ -451,7 +450,7 @@ if plot_timeseries:
     plt.xlabel("time (s)")
     plt.grid(True, alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel(f"residual mode_{mode_1}")
 
 
@@ -460,14 +459,14 @@ if plot_timeseries:
         if plot_onsky:
             plt.plot(time_plot_RL, residual_mode_2_curve_1st_RL_full, color="indianred", label=f"mode_{mode_2}_1st_stage_{label_RL}")
             plt.plot(time_plot_RL, residual_mode_2_curve_2nd_RL_full, color="red", label=f"mode_{mode_2}_2nd_stage_{label_RL}")
-        # if plot_sim:
-            # plt.plot(time_plot_RL_sim, residual_mode_2_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_2}_1st_stage_{label_int_sim}")
-            # plt.plot(time_plot_RL_sim, residual_mode_2_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_2}_2nd_stage_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(time_plot_RL_sim, residual_mode_2_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_2}_1st_stage_{label_int_sim}")
+            plt.plot(time_plot_RL_sim, residual_mode_2_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_2}_2nd_stage_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(time_plot_int, residual_mode_2_curve_2nd_int_full, color="blue", label=f"mode_{mode_2}_2nd_stage_{label_int}")
-        # if plot_sim:
-            # plt.plot(time_plot_int_sim, residual_mode_2_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_2}_2nd_stage_{label_int_sim}")
+        if plot_sim:
+            plt.plot(time_plot_int_sim, residual_mode_2_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_2}_2nd_stage_{label_int_sim}")
     if ideal:
         plt.plot(time_plot_ideal, residual_mode_2_curve_1st_ideal_full, label=f"mode_{mode_2}_1st_stage_{label_ideal}")
         plt.plot(time_plot_ideal, residual_mode_2_curve_2nd_ideal_full, label=f"mode_{mode_2}_2nd_stage_{label_ideal}")
@@ -475,7 +474,7 @@ if plot_timeseries:
     plt.xlabel("time (s)")
     plt.grid(True, alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel(f"residual mode_{mode_2}")
 
 
@@ -484,14 +483,14 @@ if plot_timeseries:
         if plot_onsky:
             plt.plot(time_plot_RL, residual_mode_3_curve_1st_RL_full, color="indianred", label=f"mode_{mode_3}_1st_stage_{label_RL}")
             plt.plot(time_plot_RL, residual_mode_3_curve_2nd_RL_full, color="red", label=f"mode_{mode_3}_2nd_stage_{label_RL}")
-        # if plot_sim:
-            # plt.plot(time_plot_RL_sim, residual_mode_3_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_3}_1st_stage_{label_int_sim}")
-            # plt.plot(time_plot_RL_sim, residual_mode_3_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_3}_2nd_stage_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(time_plot_RL_sim, residual_mode_3_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_3}_1st_stage_{label_int_sim}")
+            plt.plot(time_plot_RL_sim, residual_mode_3_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_3}_2nd_stage_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(time_plot_int, residual_mode_3_curve_2nd_int_full, color="blue", label=f"mode_{mode_3}_2nd_stage_{label_int}")
-        # if plot_sim:
-            # plt.plot(time_plot_int_sim, residual_mode_3_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_3}_2nd_stage_{label_int_sim}")
+        if plot_sim:
+            plt.plot(time_plot_int_sim, residual_mode_3_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_3}_2nd_stage_{label_int_sim}")
     if ideal:
         plt.plot(time_plot_ideal, residual_mode_3_curve_1st_ideal_full, label=f"mode_{mode_3}_1st_stage__{label_ideal}")
         plt.plot(time_plot_ideal, residual_mode_3_curve_2nd_ideal_full, label=f"mode_{mode_3}_2nd_stage_{label_ideal}")
@@ -499,7 +498,7 @@ if plot_timeseries:
     plt.xlabel("time (s)")
     plt.grid(True, alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel(f"residual mode_{mode_3}")
 
 
@@ -508,14 +507,14 @@ if plot_timeseries:
         if plot_onsky:
             plt.plot(time_plot_RL, residual_mode_4_curve_1st_RL_full, color="indianred", label=f"mode_{mode_4}_1st_stage_{label_RL}")
             plt.plot(time_plot_RL, residual_mode_4_curve_2nd_RL_full, color="red", label=f"mode__{mode_4}_2nd_stage_{label_RL}")
-        # if plot_sim:
-            # plt.plot(time_plot_RL_sim, residual_mode_4_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_4}_1st_stage_{label_int_sim}")
-            # plt.plot(time_plot_RL_sim, residual_mode_4_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_4}_2nd_stage_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(time_plot_RL_sim, residual_mode_4_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_4}_1st_stage_{label_int_sim}")
+            plt.plot(time_plot_RL_sim, residual_mode_4_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_4}_2nd_stage_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(time_plot_int, residual_mode_4_curve_2nd_int_full, color="blue", label=f"mode_{mode_4}_2nd_stage_{label_int}")
-        # if plot_sim:
-            # plt.plot(time_plot_int_sim, residual_mode_4_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_4}_2nd_stage_{label_int_sim}")
+        if plot_sim:
+            plt.plot(time_plot_int_sim, residual_mode_4_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_4}_2nd_stage_{label_int_sim}")
     if ideal:
         plt.plot(time_plot_ideal, residual_mode_4_curve_1st_ideal_full, label=f"mode_{mode_4}_1st_stage_{label_ideal}")
         plt.plot(time_plot_ideal, residual_mode_4_curve_2nd_ideal_full, label=f"mode_{mode_4}_2nd_stage_{label_ideal}")
@@ -523,7 +522,7 @@ if plot_timeseries:
     plt.xlabel("time (s)")
     plt.grid(True, alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel(f"residual mode_{mode_4}")
 
 
@@ -532,14 +531,14 @@ if plot_timeseries:
         if plot_onsky:
             plt.plot(time_plot_RL, residual_mode_5_curve_1st_RL_full, color="indianred", label=f"mode_{mode_5}_1st_stage_{label_RL}")
             plt.plot(time_plot_RL, residual_mode_5_curve_2nd_RL_full, color="red", label=f"mode_{mode_5}_2nd_stage_{label_RL}")
-        # if plot_sim:
-            # plt.plot(time_plot_RL_sim, residual_mode_5_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_5}_1st_stage_{label_int_sim}")
-            # plt.plot(time_plot_RL_sim, residual_mode_5_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_5}_2nd_stage_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(time_plot_RL_sim, residual_mode_5_curve_1st_RL_sim_full, ':', color="indianred", label=f"mode_{mode_5}_1st_stage_{label_int_sim}")
+            plt.plot(time_plot_RL_sim, residual_mode_5_curve_2nd_RL_sim_full, ':', color="red", label=f"mode_{mode_5}_2nd_stage_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(time_plot_int, residual_mode_5_curve_2nd_int_full, color="blue", label=f"mode_{mode_5}_2nd_stage_{label_int}")
-        # if plot_sim:
-            # plt.plot(time_plot_int_sim, residual_mode_5_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_5}_2nd_stage_{label_int_sim}")
+        if plot_sim:
+            plt.plot(time_plot_int_sim, residual_mode_5_curve_2nd_int_sim_full, ':', color="blue", label=f"mode_{mode_5}_2nd_stage_{label_int_sim}")
     if ideal:
         plt.plot(time_plot_ideal, residual_mode_5_curve_1st_ideal_full, label=f"mode_{mode_5}_1st_stage_{label_ideal}")
         plt.plot(time_plot_ideal, residual_mode_5_curve_2nd_ideal_full, label=f"mode_{mode_5}_2nd_stage_{label_ideal}")
@@ -547,24 +546,24 @@ if plot_timeseries:
     plt.xlabel("time (s)")
     plt.grid(True, alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel(f"residual mode_{mode_5}")
 
 
 if plot_tPSD:
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(19, 8))
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_1st_RL, PSD_residual_mode_1_1st_RL, '--', color="indianred", lw=2.5, label=f"1st stage integrator")
             plt.plot(PSD_residual_mode_1_freq_t_2nd_RL, PSD_residual_mode_1_2nd_RL, color="red", lw=2.5, label=f"2nd stage CNN + PO4AO")
         if plot_sim:
             plt.plot(PSD_residual_mode_1_freq_t_1st_RL_sim, PSD_residual_mode_1_1st_RL_sim, ':', color="indianred", lw=2.5, label=f"PSD_mode_{mode_1}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim, PSD_residual_mode_1_2nd_RL_sim, ':', color="red", lw=2.5, label=f"PSD_mode_{mode_1}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim, PSD_residual_mode_1_2nd_RL_sim, ':', color="red", lw=2.5, label=f"PSD_mode_{mode_1}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_2nd_int, PSD_residual_mode_1_2nd_int, color="blue", lw=2.5, label=f"2nd stage CNN + integrator")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim, PSD_residual_mode_1_2nd_int_sim, ':', color="blue", lw=2.5, label=f"PSD_mode_{mode_1}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim, PSD_residual_mode_1_2nd_int_sim, ':', color="blue", lw=2.5, label=f"PSD_mode_{mode_1}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_1_freq_t_2nd_ideal, PSD_residual_mode_1_2nd_ideal, lw=2.5, label=f"PSD_mode_{mode_1}_2nd_{label_ideal}")
     if plot_onsky:
@@ -580,9 +579,7 @@ if plot_tPSD:
     plt.yticks(fontsize=20)
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
-    plt.minorticks_on()
-    plt.legend(fontsize=18)
+    plt.legend(fontsize=16, loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("PSD (nm² Hz⁻¹)", fontsize=24)
     # plt.savefig(f'{loaddir}/tip_tPSD.png', dpi=300, bbox_inches='tight')
 
@@ -594,12 +591,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_RL, PSD_residual_mode_2_2nd_RL, color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_2_freq_t_1st_RL_sim, PSD_residual_mode_2_1st_RL_sim, ':', color="indianred", label=f"PSD_mode_{mode_2}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim, PSD_residual_mode_2_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim, PSD_residual_mode_2_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_int, PSD_residual_mode_2_2nd_int, color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim, PSD_residual_mode_2_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim, PSD_residual_mode_2_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_2_freq_t_2nd_ideal, PSD_residual_mode_2_2nd_ideal, label=f"PSD_mode_{mode_2}_2nd_{label_ideal}")
     if plot_onsky:
@@ -612,7 +609,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("PSD (nm² Hz⁻¹)")
 
 
@@ -623,12 +620,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_RL, PSD_residual_mode_3_2nd_RL, color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_3_freq_t_1st_RL_sim, PSD_residual_mode_3_1st_RL_sim, ':', color="indianred", label=f"PSD_mode_{mode_3}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim, PSD_residual_mode_3_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim, PSD_residual_mode_3_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_int, PSD_residual_mode_3_2nd_int, color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim, PSD_residual_mode_3_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim, PSD_residual_mode_3_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_3_freq_t_2nd_ideal, PSD_residual_mode_3_2nd_ideal, label=f"PSD_mode_{mode_3}_2nd_{label_ideal}")
     if plot_onsky:
@@ -641,7 +638,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("PSD (nm² Hz⁻¹)")
 
 
@@ -652,12 +649,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_RL, PSD_residual_mode_4_2nd_RL, color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_4_freq_t_1st_RL_sim, PSD_residual_mode_4_1st_RL_sim, ':', color="indianred", label=f"PSD_mode_{mode_4}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim, PSD_residual_mode_4_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim, PSD_residual_mode_4_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_int, PSD_residual_mode_4_2nd_int, color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim, PSD_residual_mode_4_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim, PSD_residual_mode_4_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_4_freq_t_2nd_ideal, PSD_residual_mode_4_2nd_ideal, label=f"PSD_mode_{mode_4}_2nd_{label_ideal}")
     if plot_onsky:
@@ -670,7 +667,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("PSD (nm² Hz⁻¹)")
 
 
@@ -681,12 +678,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_RL, PSD_residual_mode_5_2nd_RL, color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_5_freq_t_1st_RL_sim, PSD_residual_mode_5_1st_RL_sim, ':', color="indianred", label=f"PSD_mode_{mode_5}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim, PSD_residual_mode_5_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim, PSD_residual_mode_5_2nd_RL_sim, ':', color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_int, PSD_residual_mode_5_2nd_int, color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim, PSD_residual_mode_5_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim, PSD_residual_mode_5_2nd_int_sim, ':', color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_5_freq_t_2nd_ideal, PSD_residual_mode_5_2nd_ideal, label=f"PSD_mode_{mode_5}_2nd_{label_ideal}")
     if plot_onsky:
@@ -699,7 +696,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("PSD (nm² Hz⁻¹)")
 
 
@@ -714,19 +711,19 @@ print(f'ratio of total tip residual in nm²: {cumulative_trapezoid(PSD_residual_
 
 
 if plot_tPSD:
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(19, 8))
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_1st_RL, cumulative_trapezoid(PSD_residual_mode_1_1st_RL, PSD_residual_mode_1_freq_t_1st_RL, initial=0), '--', color="indianred", lw=2.5, label="1st stage integrator")
             plt.plot(PSD_residual_mode_1_freq_t_2nd_RL, cumulative_trapezoid(PSD_residual_mode_1_2nd_RL, PSD_residual_mode_1_freq_t_2nd_RL, initial=0), color="red", lw=2.5, label="2nd stage CNN + PO4AO")
         if plot_sim:
             plt.plot(PSD_residual_mode_1_freq_t_1st_RL_sim, cumulative_trapezoid(PSD_residual_mode_1_1st_RL_sim, PSD_residual_mode_1_freq_t_1st_RL_sim, initial=0), ':', color="indianred", lw=2.5, label=f"1st stage integrator ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_1_2nd_RL_sim, PSD_residual_mode_1_freq_t_2nd_RL_sim, initial=0), ':', color="red", lw=2.5, label=f"2nd stage CNN + PO4AO ({label_RL_sim})")
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_1_2nd_RL_sim, PSD_residual_mode_1_freq_t_2nd_RL_sim, initial=0), ':', color="red", lw=2.5, label=f"2nd stage CNN + PO4AO ({label_RL_sim})")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_2nd_int, cumulative_trapezoid(PSD_residual_mode_1_2nd_int, PSD_residual_mode_1_freq_t_2nd_int, initial=0), color="blue", lw=2.5, label="2nd stage CNN + integrator")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_1_2nd_int_sim, PSD_residual_mode_1_freq_t_2nd_int_sim, initial=0), ':', color="blue", lw=2.5, label=f"2nd stage CNN ({label_int_sim})")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_1_2nd_int_sim, PSD_residual_mode_1_freq_t_2nd_int_sim, initial=0), ':', color="blue", lw=2.5, label=f"2nd stage CNN ({label_int_sim})")
     if ideal:
         plt.plot(PSD_residual_mode_1_freq_t_2nd_ideal, cumulative_trapezoid(PSD_residual_mode_1_2nd_ideal, PSD_residual_mode_1_freq_t_2nd_ideal, initial=0), lw=2.5, label=f"PSD_mode_{mode_1}_2nd_{label_ideal}")
 
@@ -740,7 +737,7 @@ if plot_tPSD:
     plt.yticks(fontsize=20)
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend(fontsize=18)
+    plt.legend(fontsize=16, loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.axvspan(50, 60, alpha=0.2, color='red', zorder=0)#color='red', alpha=0.12
     # plt.text(70, 150, 'Vibration\nCompensation', fontsize=24, fontweight='bold',
     #          color='darkred', ha='left', va='center')
@@ -754,12 +751,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_RL, cumulative_trapezoid(PSD_residual_mode_2_2nd_RL, PSD_residual_mode_2_freq_t_2nd_RL, initial=0), color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_2_freq_t_1st_RL_sim, cumulative_trapezoid(PSD_residual_mode_2_1st_RL_sim, PSD_residual_mode_2_freq_t_1st_RL_sim, initial=0), ':', color="indianred", label=f"PSD_mode_{mode_2}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_2_2nd_RL_sim, PSD_residual_mode_2_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_2_2nd_RL_sim, PSD_residual_mode_2_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_int, cumulative_trapezoid(PSD_residual_mode_2_2nd_int, PSD_residual_mode_2_freq_t_2nd_int, initial=0), color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_2_2nd_int_sim, PSD_residual_mode_2_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_2_2nd_int_sim, PSD_residual_mode_2_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_2_freq_t_2nd_ideal, cumulative_trapezoid(PSD_residual_mode_2_2nd_ideal, PSD_residual_mode_2_freq_t_2nd_ideal, initial=0), label=f"PSD_mode_{mode_2}_2nd_{label_ideal}")
 
@@ -769,7 +766,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("cumulative PSD (nm²)")
 
 
@@ -780,12 +777,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_RL, cumulative_trapezoid(PSD_residual_mode_3_2nd_RL, PSD_residual_mode_3_freq_t_2nd_RL, initial=0), color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_3_freq_t_1st_RL_sim, cumulative_trapezoid(PSD_residual_mode_3_1st_RL_sim, PSD_residual_mode_3_freq_t_1st_RL_sim, initial=0), ':', color="indianred", label=f"PSD_mode_{mode_3}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_3_2nd_RL_sim, PSD_residual_mode_3_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_3_2nd_RL_sim, PSD_residual_mode_3_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_int, cumulative_trapezoid(PSD_residual_mode_3_2nd_int, PSD_residual_mode_3_freq_t_2nd_int, initial=0), color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_3_2nd_int_sim, PSD_residual_mode_3_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_3_2nd_int_sim, PSD_residual_mode_3_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_3_freq_t_2nd_ideal, cumulative_trapezoid(PSD_residual_mode_3_2nd_ideal, PSD_residual_mode_3_freq_t_2nd_ideal, initial=0), label=f"PSD_mode_{mode_3}_2nd_{label_ideal}")
 
@@ -795,7 +792,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("cumulative PSD (nm²)")
 
 
@@ -806,12 +803,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_RL, cumulative_trapezoid(PSD_residual_mode_4_2nd_RL, PSD_residual_mode_4_freq_t_2nd_RL, initial=0), color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_4_freq_t_1st_RL_sim, cumulative_trapezoid(PSD_residual_mode_4_1st_RL_sim, PSD_residual_mode_4_freq_t_1st_RL_sim, initial=0), ':', color="indianred", label=f"PSD_mode_{mode_4}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_4_2nd_RL_sim, PSD_residual_mode_4_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_4_2nd_RL_sim, PSD_residual_mode_4_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_int, cumulative_trapezoid(PSD_residual_mode_4_2nd_int, PSD_residual_mode_4_freq_t_2nd_int, initial=0), color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_4_2nd_int_sim, PSD_residual_mode_4_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_4_2nd_int_sim, PSD_residual_mode_4_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_4_freq_t_2nd_ideal, cumulative_trapezoid(PSD_residual_mode_4_2nd_ideal, PSD_residual_mode_4_freq_t_2nd_ideal, initial=0), label=f"PSD_mode_{mode_4}_2nd_{label_ideal}")
 
@@ -821,7 +818,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("cumulative PSD (nm²)")
 
 
@@ -832,12 +829,12 @@ if plot_tPSD:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_RL, cumulative_trapezoid(PSD_residual_mode_5_2nd_RL, PSD_residual_mode_5_freq_t_2nd_RL, initial=0), color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL}")
         if plot_sim:
             plt.plot(PSD_residual_mode_5_freq_t_1st_RL_sim, cumulative_trapezoid(PSD_residual_mode_5_1st_RL_sim, PSD_residual_mode_5_freq_t_1st_RL_sim, initial=0), ':', color="indianred", label=f"PSD_mode_{mode_5}_1st_int ({label_int_sim})")
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_5_2nd_RL_sim, PSD_residual_mode_5_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL_sim}")
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim, cumulative_trapezoid(PSD_residual_mode_5_2nd_RL_sim, PSD_residual_mode_5_freq_t_2nd_RL_sim, initial=0), ':', color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_int, cumulative_trapezoid(PSD_residual_mode_5_2nd_int, PSD_residual_mode_5_freq_t_2nd_int, initial=0), color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_5_2nd_int_sim, PSD_residual_mode_5_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim, cumulative_trapezoid(PSD_residual_mode_5_2nd_int_sim, PSD_residual_mode_5_freq_t_2nd_int_sim, initial=0), ':', color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_5_freq_t_2nd_ideal, cumulative_trapezoid(PSD_residual_mode_5_2nd_ideal, PSD_residual_mode_5_freq_t_2nd_ideal, initial=0), label=f"PSD_mode_{mode_5}_2nd_{label_ideal}")
 
@@ -847,7 +844,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("cumulative PSD (nm²)")
 
 
@@ -872,19 +869,19 @@ if integrator:
     PSD_mode_4_ratio_int = PSD_residual_mode_4_1st_RL/PSD_residual_mode_4_2nd_int
     PSD_mode_5_ratio_int = PSD_residual_mode_5_1st_RL/PSD_residual_mode_5_2nd_int
 
-# if RL and plot_sim:
-    # PSD_mode_1_ratio_RL_sim = PSD_residual_mode_1_1st_RL_sim/PSD_residual_mode_1_2nd_RL_sim
-    # PSD_mode_2_ratio_RL_sim = PSD_residual_mode_2_1st_RL_sim/PSD_residual_mode_2_2nd_RL_sim
-    # PSD_mode_3_ratio_RL_sim = PSD_residual_mode_3_1st_RL_sim/PSD_residual_mode_3_2nd_RL_sim
-    # PSD_mode_4_ratio_RL_sim = PSD_residual_mode_4_1st_RL_sim/PSD_residual_mode_4_2nd_RL_sim
-    # PSD_mode_5_ratio_RL_sim = PSD_residual_mode_5_1st_RL_sim/PSD_residual_mode_5_2nd_RL_sim
+if RL and plot_sim:
+    PSD_mode_1_ratio_RL_sim = PSD_residual_mode_1_1st_RL_sim/PSD_residual_mode_1_2nd_RL_sim
+    PSD_mode_2_ratio_RL_sim = PSD_residual_mode_2_1st_RL_sim/PSD_residual_mode_2_2nd_RL_sim
+    PSD_mode_3_ratio_RL_sim = PSD_residual_mode_3_1st_RL_sim/PSD_residual_mode_3_2nd_RL_sim
+    PSD_mode_4_ratio_RL_sim = PSD_residual_mode_4_1st_RL_sim/PSD_residual_mode_4_2nd_RL_sim
+    PSD_mode_5_ratio_RL_sim = PSD_residual_mode_5_1st_RL_sim/PSD_residual_mode_5_2nd_RL_sim
 
-# if integrator and plot_sim:
-    # PSD_mode_1_ratio_int_sim = PSD_residual_mode_1_1st_RL_sim/PSD_residual_mode_1_2nd_int_sim
-    # PSD_mode_2_ratio_int_sim = PSD_residual_mode_2_1st_RL_sim/PSD_residual_mode_2_2nd_int_sim
-    # PSD_mode_3_ratio_int_sim = PSD_residual_mode_3_1st_RL_sim/PSD_residual_mode_3_2nd_int_sim
-    # PSD_mode_4_ratio_int_sim = PSD_residual_mode_4_1st_RL_sim/PSD_residual_mode_4_2nd_int_sim
-    # PSD_mode_5_ratio_int_sim = PSD_residual_mode_5_1st_RL_sim/PSD_residual_mode_5_2nd_int_sim
+if integrator and plot_sim:
+    PSD_mode_1_ratio_int_sim = PSD_residual_mode_1_1st_RL_sim/PSD_residual_mode_1_2nd_int_sim
+    PSD_mode_2_ratio_int_sim = PSD_residual_mode_2_1st_RL_sim/PSD_residual_mode_2_2nd_int_sim
+    PSD_mode_3_ratio_int_sim = PSD_residual_mode_3_1st_RL_sim/PSD_residual_mode_3_2nd_int_sim
+    PSD_mode_4_ratio_int_sim = PSD_residual_mode_4_1st_RL_sim/PSD_residual_mode_4_2nd_int_sim
+    PSD_mode_5_ratio_int_sim = PSD_residual_mode_5_1st_RL_sim/PSD_residual_mode_5_2nd_int_sim
 
 if ideal:
     PSD_mode_1_ratio_ideal = PSD_residual_mode_1_1st_ideal/PSD_residual_mode_1_2nd_ideal
@@ -899,13 +896,13 @@ if plot_tPSD:
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_2nd_RL, PSD_mode_1_ratio_RL, color="red", label=f"PSD_mode_{mode_1}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim, PSD_mode_1_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_1}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim, PSD_mode_1_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_1}_2nd_{label_int_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_2nd_int, PSD_mode_1_ratio_int, color="blue", label=f"PSD_mode_{mode_1}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim, PSD_mode_1_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_1}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim, PSD_mode_1_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_1}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_1_freq_t_2nd_ideal, PSD_mode_1_ratio_ideal, label=f"PSD_mode_{mode_1}_2nd_{label_ideal}")
     plt.title(f"Gain of 2nd stage over 1st stage {mode_1}, gain {CL_gain_pyr}")
@@ -914,7 +911,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("1st / 2nd stage PSD ratio")
 
 
@@ -923,13 +920,13 @@ if plot_tPSD:
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_RL, PSD_mode_2_ratio_RL, color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim, PSD_mode_2_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim, PSD_mode_2_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_2}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_int, PSD_mode_2_ratio_int, color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim, PSD_mode_2_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim, PSD_mode_2_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_2}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_2_freq_t_2nd_ideal, PSD_mode_2_ratio_ideal, label=f"PSD_mode_{mode_2}_2nd_{label_ideal}")
     plt.title(f"Gain of 2nd stage over 1st stage {mode_2}, gain {CL_gain_pyr}")
@@ -938,7 +935,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("1st / 2nd stage PSD ratio")
 
 
@@ -947,13 +944,13 @@ if plot_tPSD:
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_RL, PSD_mode_3_ratio_RL, color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim, PSD_mode_3_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim, PSD_mode_3_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_3}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_int, PSD_mode_3_ratio_int, color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim, PSD_mode_3_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim, PSD_mode_3_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_3}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_3_freq_t_2nd_ideal, PSD_mode_3_ratio_ideal, label=f"PSD_mode_{mode_3}_2nd_{label_ideal}")
     plt.title(f"Gain of 2nd stage over 1st stage {mode_3}, gain {CL_gain_pyr}")
@@ -962,7 +959,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("1st / 2nd stage PSD ratio")
 
 
@@ -973,13 +970,13 @@ if plot_tPSD:
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_RL, PSD_mode_4_ratio_RL, color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim, PSD_mode_4_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim, PSD_mode_4_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_4}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_int, PSD_mode_4_ratio_int, color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim, PSD_mode_4_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim, PSD_mode_4_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_4}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_4_freq_t_2nd_ideal, PSD_mode_4_ratio_ideal, label=f"PSD_mode_{mode_4}_2nd_{label_ideal}")
     plt.title(f"Gain of 2nd stage over 1st stage {mode_4}, gain {CL_gain_pyr}")
@@ -988,7 +985,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("1st / 2nd stage PSD ratio")
 
 
@@ -997,13 +994,13 @@ if plot_tPSD:
     if RL:
         if plot_onsky:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_RL, PSD_mode_5_ratio_RL, color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim, PSD_mode_5_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim, PSD_mode_5_ratio_RL_sim, ':', color="red", label=f"PSD_mode_{mode_5}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_int, PSD_mode_5_ratio_int, color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim, PSD_mode_5_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim, PSD_mode_5_ratio_int_sim, ':', color="blue", label=f"PSD_mode_{mode_5}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_5_freq_t_2nd_ideal, PSD_mode_5_ratio_ideal, label=f"PSD_mode_{mode_5}_2nd_{label_ideal}")
     plt.title(f"Gain of 2nd stage over 1st stage {mode_5}, gain {CL_gain_pyr}")
@@ -1012,7 +1009,7 @@ if plot_tPSD:
     plt.xscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
     plt.ylabel("1st / 2nd stage PSD ratio")
 
 
@@ -1027,9 +1024,9 @@ idx_atm = np.isin(np.round(PSD_atm_mode_1_freq_t, 6), np.round(PSD_residual_mode
 f2_selected  = PSD_residual_mode_1_freq_t_2nd_RL[idx_CL]
 psd2_selected = PSD_residual_mode_1_2nd_RL[idx_CL]
 
-# if RL and plot_sim:
-    # idx_CL_sim  = np.isin(np.round(PSD_residual_mode_1_freq_t_2nd_RL_sim, 6), np.round(PSD_atm_mode_1_freq_t_sim, 6))
-    # idx_atm_sim = np.isin(np.round(PSD_atm_mode_1_freq_t_sim, 6), np.round(PSD_residual_mode_1_freq_t_2nd_RL_sim, 6))
+if RL and plot_sim:
+    idx_CL_sim  = np.isin(np.round(PSD_residual_mode_1_freq_t_2nd_RL_sim, 6), np.round(PSD_atm_mode_1_freq_t_sim, 6))
+    idx_atm_sim = np.isin(np.round(PSD_atm_mode_1_freq_t_sim, 6), np.round(PSD_residual_mode_1_freq_t_2nd_RL_sim, 6))
 
 if plot_tPSD:
     if RL:
@@ -1046,18 +1043,18 @@ if plot_tPSD:
             tETF_mode_4_2nd_RL = PSD_residual_mode_4_2nd_RL[idx_CL] / PSD_atm_mode_4[idx_atm]
             tETF_mode_5_2nd_RL = PSD_residual_mode_5_2nd_RL[idx_CL] / PSD_atm_mode_5[idx_atm]
 
-        # if plot_sim:
-            # tETF_mode_1_1st_RL_sim = PSD_residual_mode_1_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_1_sim[idx_atm_sim]
-            # tETF_mode_2_1st_RL_sim = PSD_residual_mode_2_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_2_sim[idx_atm_sim]
-            # tETF_mode_3_1st_RL_sim = PSD_residual_mode_3_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_3_sim[idx_atm_sim]
-            # tETF_mode_4_1st_RL_sim = PSD_residual_mode_4_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_4_sim[idx_atm_sim]
-            # tETF_mode_5_1st_RL_sim = PSD_residual_mode_5_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_5_sim[idx_atm_sim]
+        if plot_sim:
+            tETF_mode_1_1st_RL_sim = PSD_residual_mode_1_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_1_sim[idx_atm_sim]
+            tETF_mode_2_1st_RL_sim = PSD_residual_mode_2_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_2_sim[idx_atm_sim]
+            tETF_mode_3_1st_RL_sim = PSD_residual_mode_3_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_3_sim[idx_atm_sim]
+            tETF_mode_4_1st_RL_sim = PSD_residual_mode_4_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_4_sim[idx_atm_sim]
+            tETF_mode_5_1st_RL_sim = PSD_residual_mode_5_1st_RL_sim[idx_CL_sim] / PSD_atm_mode_5_sim[idx_atm_sim]
 
-            # tETF_mode_1_2nd_RL_sim = PSD_residual_mode_1_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_1_sim[idx_atm_sim]
-            # tETF_mode_2_2nd_RL_sim = PSD_residual_mode_2_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_2_sim[idx_atm_sim]
-            # tETF_mode_3_2nd_RL_sim = PSD_residual_mode_3_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_3_sim[idx_atm_sim]
-            # tETF_mode_4_2nd_RL_sim = PSD_residual_mode_4_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_4_sim[idx_atm_sim]
-            # tETF_mode_5_2nd_RL_sim = PSD_residual_mode_5_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_5_sim[idx_atm_sim]
+            tETF_mode_1_2nd_RL_sim = PSD_residual_mode_1_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_1_sim[idx_atm_sim]
+            tETF_mode_2_2nd_RL_sim = PSD_residual_mode_2_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_2_sim[idx_atm_sim]
+            tETF_mode_3_2nd_RL_sim = PSD_residual_mode_3_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_3_sim[idx_atm_sim]
+            tETF_mode_4_2nd_RL_sim = PSD_residual_mode_4_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_4_sim[idx_atm_sim]
+            tETF_mode_5_2nd_RL_sim = PSD_residual_mode_5_2nd_RL_sim[idx_CL_sim] / PSD_atm_mode_5_sim[idx_atm_sim]
 
 
     if integrator:
@@ -1068,12 +1065,12 @@ if plot_tPSD:
             tETF_mode_4_2nd_int = PSD_residual_mode_4_2nd_int[idx_CL] / PSD_atm_mode_4[idx_atm]
             tETF_mode_5_2nd_int = PSD_residual_mode_5_2nd_int[idx_CL] / PSD_atm_mode_5[idx_atm]
 
-        # if plot_sim:
-            # tETF_mode_1_2nd_int_sim = PSD_residual_mode_1_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_1_sim[idx_atm_sim]
-            # tETF_mode_2_2nd_int_sim = PSD_residual_mode_2_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_2_sim[idx_atm_sim]
-            # tETF_mode_3_2nd_int_sim = PSD_residual_mode_3_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_3_sim[idx_atm_sim]
-            # tETF_mode_4_2nd_int_sim = PSD_residual_mode_4_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_4_sim[idx_atm_sim]
-            # tETF_mode_5_2nd_int_sim = PSD_residual_mode_5_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_5_sim[idx_atm_sim]
+        if plot_sim:
+            tETF_mode_1_2nd_int_sim = PSD_residual_mode_1_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_1_sim[idx_atm_sim]
+            tETF_mode_2_2nd_int_sim = PSD_residual_mode_2_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_2_sim[idx_atm_sim]
+            tETF_mode_3_2nd_int_sim = PSD_residual_mode_3_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_3_sim[idx_atm_sim]
+            tETF_mode_4_2nd_int_sim = PSD_residual_mode_4_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_4_sim[idx_atm_sim]
+            tETF_mode_5_2nd_int_sim = PSD_residual_mode_5_2nd_int_sim[idx_CL_sim] / PSD_atm_mode_5_sim[idx_atm_sim]
 
 
     if ideal:
@@ -1097,14 +1094,14 @@ if plot_tPSD:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_1st_RL[idx_CL], tETF_mode_1_1st_RL, '--', color="indianred", label=f"ETF mode_{mode_1}_1st_{label_RL}")
             plt.plot(PSD_residual_mode_1_freq_t_2nd_RL[idx_CL], tETF_mode_1_2nd_RL, color="red", label=f"ETF mode_{mode_1}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_1_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_1_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_1}_1st_{label_int_sim}")
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_1_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_1}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_1_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_1_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_1}_1st_{label_int_sim}")
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_1_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_1}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_1_freq_t_2nd_int[idx_CL], tETF_mode_1_2nd_int, color="blue", label=f"ETF mode_{mode_1}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_1_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_1}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_1_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_1_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_1}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_1_freq_t_1st_ideal[idx_CL], tETF_mode_1_1st_ideal, '--', label=f"ETF mode_{mode_1}_1st_{label_ideal}")
         plt.plot(PSD_residual_mode_1_freq_t_2nd_ideal[idx_CL], tETF_mode_1_2nd_ideal, label=f"ETF mode_{mode_1}_2nd_{label_ideal}")
@@ -1115,7 +1112,7 @@ if plot_tPSD:
     plt.yscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
 
 
     #tilt
@@ -1124,14 +1121,14 @@ if plot_tPSD:
         if plot_onsky:
             plt.plot(PSD_residual_mode_2_freq_t_1st_RL[idx_CL], tETF_mode_2_1st_RL, '--', color="indianred", label=f"ETF mode_{mode_2}_1st_{label_RL}")
             plt.plot(PSD_residual_mode_2_freq_t_2nd_RL[idx_CL], tETF_mode_2_2nd_RL, color="red", label=f"ETF mode_{mode_2}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_2_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_2_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_2}_1st_{label_int_sim}")
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_2_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_2}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_2_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_2_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_2}_1st_{label_int_sim}")
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_2_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_2}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_2_freq_t_2nd_int[idx_CL], tETF_mode_2_2nd_int, color="blue", label=f"ETF mode_{mode_2}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_2_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_2}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_2_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_2_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_2}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_2_freq_t_1st_ideal[idx_CL], tETF_mode_2_1st_ideal, '--', label=f"ETF mode_{mode_2}_1st_{label_ideal}")
         plt.plot(PSD_residual_mode_2_freq_t_2nd_ideal[idx_CL], tETF_mode_2_2nd_ideal, label=f"ETF mode_{mode_2}_2nd_{label_ideal}")
@@ -1142,7 +1139,7 @@ if plot_tPSD:
     plt.yscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
 
     #100
     plt.figure()
@@ -1150,14 +1147,14 @@ if plot_tPSD:
         if plot_onsky:
             plt.plot(PSD_residual_mode_3_freq_t_1st_RL[idx_CL], tETF_mode_3_1st_RL, '--', color="indianred", label=f"ETF mode_{mode_3}_1st_{label_RL}")
             plt.plot(PSD_residual_mode_3_freq_t_2nd_RL[idx_CL], tETF_mode_3_2nd_RL, color="red", label=f"ETF mode_{mode_3}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_3_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_3_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_3}_1st_{label_int_sim}")
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_3_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_3}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_3_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_3_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_3}_1st_{label_int_sim}")
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_3_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_3}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_3_freq_t_2nd_int[idx_CL], tETF_mode_3_2nd_int, color="blue", label=f"ETF mode_{mode_3}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_3_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_3}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_3_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_3_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_3}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_3_freq_t_1st_ideal[idx_CL], tETF_mode_3_1st_ideal, '--', label=f"ETF mode_{mode_3}_1st_{label_ideal}")
         plt.plot(PSD_residual_mode_3_freq_t_2nd_ideal[idx_CL], tETF_mode_3_2nd_ideal, label=f"ETF mode_{mode_3}_2nd_{label_ideal}")
@@ -1168,7 +1165,7 @@ if plot_tPSD:
     plt.yscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
 
     #200
     plt.figure()
@@ -1176,14 +1173,14 @@ if plot_tPSD:
         if plot_onsky:
             plt.plot(PSD_residual_mode_4_freq_t_1st_RL[idx_CL], tETF_mode_4_1st_RL, '--', color="indianred", label=f"ETF mode_{mode_4}_1st_{label_RL}")
             plt.plot(PSD_residual_mode_4_freq_t_2nd_RL[idx_CL], tETF_mode_4_2nd_RL, color="red", label=f"ETF mode_{mode_4}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_4_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_4_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_4}_1st_{label_int_sim}")
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_4_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_4}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_4_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_4_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_4}_1st_{label_int_sim}")
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_4_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_4}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_4_freq_t_2nd_int[idx_CL], tETF_mode_4_2nd_int, color="blue", label=f"ETF mode_{mode_4}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_4_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_4}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_4_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_4_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_4}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_4_freq_t_1st_ideal[idx_CL], tETF_mode_4_1st_ideal, '--', label=f"ETF mode_{mode_4}_1st_{label_ideal}")
         plt.plot(PSD_residual_mode_4_freq_t_2nd_ideal[idx_CL], tETF_mode_4_2nd_ideal, label=f"ETF mode_{mode_4}_2nd_{label_ideal}")
@@ -1194,7 +1191,7 @@ if plot_tPSD:
     plt.yscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
 
 
     #5
@@ -1203,14 +1200,14 @@ if plot_tPSD:
         if plot_onsky:
             plt.plot(PSD_residual_mode_5_freq_t_1st_RL[idx_CL], tETF_mode_5_1st_RL, '--', color="indianred", label=f"ETF mode_{mode_5}_1st_{label_RL}")
             plt.plot(PSD_residual_mode_5_freq_t_2nd_RL[idx_CL], tETF_mode_5_2nd_RL, color="red", label=f"ETF mode_{mode_5}_2nd_{label_RL}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_5_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_5_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_5}_1st_{label_int_sim}")
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_5_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_5}_2nd_{label_RL_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_5_freq_t_1st_RL_sim[idx_CL_sim], tETF_mode_5_1st_RL_sim, ':', color="indianred", label=f"ETF mode_{mode_5}_1st_{label_int_sim}")
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_RL_sim[idx_CL_sim], tETF_mode_5_2nd_RL_sim, ':', color="red", label=f"ETF mode_{mode_5}_2nd_{label_RL_sim}")
     if integrator:
         if plot_onsky:
             plt.plot(PSD_residual_mode_5_freq_t_2nd_int[idx_CL], tETF_mode_5_2nd_int, color="blue", label=f"ETF mode_{mode_5}_2nd_{label_int}")
-        # if plot_sim:
-            # plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_5_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_5}_2nd_{label_int_sim}")
+        if plot_sim:
+            plt.plot(PSD_residual_mode_5_freq_t_2nd_int_sim[idx_CL_sim], tETF_mode_5_2nd_int_sim, ':', color="blue", label=f"ETF mode_{mode_5}_2nd_{label_int_sim}")
     if ideal:
         plt.plot(PSD_residual_mode_5_freq_t_1st_ideal[idx_CL], tETF_mode_5_1st_ideal, '--', label=f"ETF mode_{mode_5}_1st_{label_ideal}")
         plt.plot(PSD_residual_mode_5_freq_t_2nd_ideal[idx_CL], tETF_mode_5_2nd_ideal, label=f"ETF mode_{mode_5}_2nd_{label_ideal}")
@@ -1221,7 +1218,7 @@ if plot_tPSD:
     plt.yscale("log")
     plt.grid(True, which='both', alpha=0.5)
     plt.minorticks_on()
-    plt.legend()
+    plt.legend(loc='upper left', bbox_to_anchor=(1.01, 1))
 
 
 
