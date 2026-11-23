@@ -30,7 +30,7 @@ import torch
 """from po4ao_edw.OOPAO_environment_ZWFS import OOPAO_environment_ZWFS
 from po4ao_edw.OOPAO_environment_PWFS import OOPAO_environment_PWFS
 from po4ao_edw.OOPAO_environment_ZWFS_1_stage import OOPAO_environment_ZWFS_1_stage
-from OOPAO.ZWFS2 import ZWFS2
+from vZWFS.ZWFS2 import ZWFS2
 from PIL import Image"""
 
 
