@@ -329,16 +329,18 @@ from OOPAO.DeformableMirror import DeformableMirror, MisRegistration
 from OOPAO.Telescope import Telescope
 from OOPAO.tools.interpolateGeometricalTransformation import interpolate_cube
 from PAPYRIIS_2stage_CNN_RL.parameterFile_papyriis import initializeParameterFile
-def first_stage_dm_builder():
+def first_stage_dm_builder(resolution = 100):
     '''
     Temporary function for building the 1st stage DM influence functions
+
+    resolution: telescope pupil sampling in pixels (100 by default, 90 matches the 2nd stage atmosphere OPDs)
     '''
     param = initializeParameterFile()
     T152onDM_size       = 35.5 # mm
-    PapyrusOnDM_size    = 37.5 # mm 
+    PapyrusOnDM_size    = 37.5 # mm
     ratio_sky_calib = T152onDM_size/PapyrusOnDM_size
     from OOPAO.Telescope import Telescope
-    tel = Telescope(resolution    = int(100),
+    tel = Telescope(resolution    = int(resolution),
                         diameter            = param['diameter']/ratio_sky_calib,
                         samplingTime        = param['samplingTime'],
                         centralObstruction  = 0,
