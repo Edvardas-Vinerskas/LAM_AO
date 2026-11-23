@@ -148,6 +148,17 @@ def initializeParameterFile():
     param['d_z_sky'          ] = 1.96
     param['d_z_calib'          ] = 2.14
     param['mask_px_size'          ] = 50 #pix size in fourier
-    
+    param['zwfs_n_pix_edge'       ] = 3  # detector pixels around each ZWFS pupil (90+2*3 = 96 px cameras, CNN input 96x192)
+
+    # ZWFS camera (applied with vzwfs.set_camera, see Detector class) -- values previously hardcoded in ZWFS_mine
+    param['zwfs_cam'              ] = dict(sensor          = 'CCD',
+                                           QE              = 0.8,
+                                           darkCurrent     = 334,                              # [e-/px/s]
+                                           readoutNoise    = 25,                               # [e-/px]
+                                           photonNoise     = True,
+                                           integrationTime = param['samplingTime_2nd'],
+                                           bits = None,
+                                           FWC = None) #when setting bits, always set FWC as well NOTE
+
     return param
 
