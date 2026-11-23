@@ -90,6 +90,7 @@ class ZWFS:
         y, x = np.ogrid[-(nSubap/2 - 0.5):(nSubap/2 + 0.5), -(nSubap/2 - 0.5):(nSubap/2 + 0.5)]
         self.cam_mask = x ** 2 + y ** 2 <= (nSubap/2 + 0.5) ** 2
         self.binning = 1
+        
         self.telescope = tel
         self.tag = 'ZWFS' 
         # if nSubap is None:
@@ -226,7 +227,7 @@ class ZWFS:
             reconstructor_iteration = 1
         if phase_in is not None:
             self.telescope.src.phase = phase_in
-        #TODO introduced amplitude from the src
+        #TODO introduced amplitude from the src (fix pupilReflectivity)
         self.Amplitude = np.sqrt(self.telescope.src.fluxMap) * self.telescope.pupilReflectivity
 
         self.EM_detect, self.img_ZWFS = self.propagation()

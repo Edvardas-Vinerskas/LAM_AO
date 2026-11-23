@@ -59,8 +59,6 @@ class OOPAO_environment_PAPYRIIS(gym.Env):
         #--------------------------------------------------- Params ---------------------------------------------------#
         # src =   Source('IR1310', 0)
         # src*tel
-        #TODO a big difference in performance is due to using your own interaction matrix vs imported one
-        #       papyrus uses the imported so I will too (EMCCD does not work with synthetic? )
 
         self.modes_1st  = 195
         self.modes_2nd  = 50
