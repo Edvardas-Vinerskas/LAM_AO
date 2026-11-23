@@ -47,8 +47,9 @@ def atm_gen(savedir, env, sim_length):
 
 #---------------------------------------------------Project atmosphere to 1st stage#----------------------------------------------------
 def proj_1st_stage(loaddir, savedir, env):
-    atm_OPDs_2nd = np.load(f"{loaddir}/atm_OPDs_2nd_{name_tag(env)}_multi_layer.npz")
-    atm_OPDs_2nd = atm_OPDs_2nd["atm_OPDs_2nd"]
+    # atm_OPDs_2nd = np.load(f"{loaddir}/atm_OPDs_2nd_{name_tag(env)}_multi_layer.npz")
+    # atm_OPDs_2nd = atm_OPDs_2nd["atm_OPDs_2nd"]
+    atm_OPDs_2nd = np.load(f"{loaddir}/atm_OPDs_2nd_{name_tag(env)}_multi_layer.npy")
     print(f"atm loaded: _{name_tag(env)}_multi_layer")
 
     os.makedirs(savedir, exist_ok = True)
@@ -94,7 +95,7 @@ def run_1st_stage(loaddir, savedir, env, sim_length, gainCL):
     )
 
 #----------------------------------------------------1st stage residual entering to 2nd (integrator)#----------------------------------------------------
-def run_2nd_stage_CL1OL2(loaddir, savedir, env, sim_length):
+def run_2nd_stage_CL1OL2(loaddir, savedir, env, sim_length, gain_2nd):
     print(f"{loaddir}/results_1st_stage_{name_tag(env)}_multi_layer.npz")
     first_stage_results = np.load(f"{loaddir}/results_1st_stage_{name_tag(env)}_multi_layer.npz")
     residuals_opds_1rst = first_stage_results['residuals_opds_1rst']
@@ -112,7 +113,7 @@ def run_2nd_stage_CL1OL2(loaddir, savedir, env, sim_length):
     obs, _ = env.reset(residuals_opds_1rst)
     t_start = time.perf_counter()
     for t in range(sim_length):
-        action = 0 * obs.unsqueeze(0).unsqueeze(0)
+        action = gain_2nd * obs.unsqueeze(0).unsqueeze(0)
         next_obs, info = env.step(action.squeeze(), residuals_opds_1rst)
         if t%100 == 0:
             t_block = time.perf_counter()
@@ -140,31 +141,64 @@ def run_2nd_stage_CL1OL2(loaddir, savedir, env, sim_length):
         projector_kl_2nd        = projector_kl_2nd,
         )
 
+#TODO checklist before running everytime:
+    #r_0
+    #V_0
+    #boiling phi(t+dt) = alpha * phi(t) + sqrt(1 - alpha**2) * phi_noise
+        #alpha = exp(-dt / t_boiling)
+    #wavelength
+    #camera noise
+
 
 
 if __name__ == '__main__':
     PAPYRIIS_env = OOPAO_environment_PAPYRIIS()
-    savedir_atm = "PAPYRIIS_2stage_CNN_RL/generated_atm_2nd_stage"
-    savedir_proj = "PAPYRIIS_2stage_CNN_RL/projected_atm_1st_stage"
-    savedir_1st = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v4_nophoton_cred"
-    savedir_2nd = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v4_nophoton_cred" 
-    simulation_length  = 15000
-    gain_1st = 0.7
+    savedir_atm = "/home/evinerskas/FATMOSS/generated_atm_2nd_stage_150000"
+    savedir_proj = "PAPYRIIS_2stage_CNN_RL/projected_atm_1st_stage_150000_fatmoss"
+    savedir_1st = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000/first_stage_gain_05_fatmoss"
+    savedir_2nd = "PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000/second_stage_gain_0_fatmoss"
+    simulation_length  = 150000
+    simulation_length_2= 15000
+    gain_1st = 0.5 #best was determined to be 0.5
+    gain_2nd = 0 #Best was determined to be 0.1
 
+    # dt = 1/400
+    # t_boil = 5
+    # alpha = np.exp(-dt / t_boil)
+    # print(alpha)
+    # print(np.sqrt(1 - alpha**2))
 
-    #TODO I changed the wvl to "R" since optical gains depend on wavelength
     
-    atm_gen(savedir = savedir_atm, env = PAPYRIIS_env, sim_length = simulation_length)
-    proj_1st_stage(loaddir = savedir_atm, savedir = savedir_proj, env = PAPYRIIS_env)
+    # atm_gen(savedir = savedir_atm, env = PAPYRIIS_env, sim_length = simulation_length)
+    # proj_1st_stage(loaddir = savedir_atm, savedir = savedir_proj, env = PAPYRIIS_env)
     # run_1st_stage(loaddir = savedir_proj, savedir = savedir_1st, env = PAPYRIIS_env, gainCL = gain_1st, sim_length = simulation_length)
-    # run_2nd_stage_CL1OL2(loaddir = savedir_1st, savedir = savedir_2nd, env = PAPYRIIS_env, sim_length = simulation_length)
+    run_2nd_stage_CL1OL2(loaddir = savedir_1st, savedir = savedir_2nd, env = PAPYRIIS_env, sim_length = simulation_length_2, gain_2nd = gain_2nd)
 
-    #TODO
-        #the projection might be problematic in 3D?
-        #but no, how it could be, pwfs reconstruction at high temporal frequencies was fine
-        # YOU SHOULD STILL DO IT, it will not take long
-        # and then do one analysis run for comparison innit
-    #TODO redo the r_0 runs with different wind speeds (3 wind speeds per r_0, so 12 processes not including the ones I already have)
-        #r_0 0.05 -> 2, 4
-        #r_0 0.07 -> 2, 3, 4
-        #r_0 0.085 -> 2, 3, 4
+    #0, 0.1, 0.5, 1, 2, 5
+    #1st stage only has 0.1, 0.5 and 5
+    #so need 0, 1, 2 (currently running)
+    #0 linear failed twice
+    #0.1 succeeded
+    #0.5 succeeded
+    #1 succeeded
+    #2 failed once
+    
+
+    #fatmoss_400_linear failed despite the integrator working
+    #fatmoss_1000 did not fail but performance is very bad since the atm is basically pure noise
+    #fatmoss_1000_linear is the same as non-linear, both performed slightly worse than the integrator (which did not perform)
+
+
+    #TODO PO4AO: linear and non-linear
+        #0, 0.1, 0.5, 1, 2, 5
+            #PO4AO + linear PO4AO
+            #apparently there is a problem how boiling is implemented in OOPAO and you might get a weaker atm with more boiling while 
+                #the rest of the settings staying the same
+            #there is also a problem that boiling is constant across all modes which it is not irl
+            #redo boiling with FATMOSS (go through the math beforehand)
+
+    #TODO your RL run with boiling is still worse than the on sky data
+        #after the rerun too...
+        #but that would be because for low order modes the boiling (decorrelation) is much longer
+            #whereas in OOPAO it is constant across modes (look at Fatmoss?)
+    
