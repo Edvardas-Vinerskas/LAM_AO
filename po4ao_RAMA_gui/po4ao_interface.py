@@ -6,10 +6,13 @@ controller the same way: write po4aoCmd, read po4aoStatus.
 
 import os
 
+import numpy as np
+
 import dao
 
-# These three SHMs must exist on the bench before the controller starts (they are
-# not created by this code); the controller opens, zeroes and writes them.
+# The controller creates these three on start-up if they do not exist yet, and
+# opens them otherwise. After changing N_CMD / N_STATUS / LIVE_PARAMS, delete the
+# stale files once: rm /tmp/po4ao*.im.shm
 SHM_CMD = "/tmp/po4aoCmd.im.shm"          # int32 (N_CMD, 1), written by the GUI
 SHM_PARAMS = "/tmp/po4aoParams.im.shm"    # float32 (len(LIVE_PARAMS), 1), written by the GUI
 SHM_STATUS = "/tmp/po4aoStatus.im.shm"    # float32 (N_STATUS, 1), written by the controller
@@ -64,4 +67,11 @@ def open_shm(path):
         return dao.shm(path)
     except Exception:
         return None
+
+
+def open_or_create_shm(path, array):
+    """Open the SHM at `path`, creating it with the shape and dtype of `array` if
+    it does not exist yet. dao.shm(path) opens an existing segment,
+    dao.shm(path, array) creates one (daobase: Shared Memory System)."""
+    return open_shm(path) or dao.shm(path, np.ascontiguousarray(array))
 

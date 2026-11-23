@@ -50,7 +50,7 @@ from po4ao_interface import (
     ST_EPISODE, ST_STEP, ST_HZ, ST_REWARD, ST_DYN_LOSS, ST_POL_LOSS, ST_TRAINING, ST_VERSION,
     ST_MODE, ST_EXPLORE, ST_SIGMA, ST_STATE, ST_REPLAY_EP, ST_WARMUP_EP, ST_ROUNDS, ST_POLICY_READY,
     STATE_IDLE, STATE_WARMUP, STATE_PRETRAIN, STATE_RUN,
-    open_shm)
+    open_shm, open_or_create_shm)
 from po4ao_models_upd import EnsembleDynamicsFast, ConvPolicyFastFast
 from po4ao_util import EpisodeReplay
 
@@ -369,14 +369,11 @@ class Controller:
 
         self.bench = Bench()
 
-        # control SHMs: must already exist on the bench (see po4ao_interface.py);
-        # zeroed here so stale requests from a previous run are ignored
-        self.cmd_shm = open_shm(SHM_CMD)
-        self.params_shm = open_shm(SHM_PARAMS)
-        self.status_shm = open_shm(SHM_STATUS)
-        for path, shm in ((SHM_CMD, self.cmd_shm), (SHM_PARAMS, self.params_shm), (SHM_STATUS, self.status_shm)):
-            if shm is None:
-                raise SystemExit(f"control SHM {path} not found; create it before starting (see po4ao_interface.py)")
+        # control SHMs: opened if they exist, created on the first run; the initial
+        # values are written here so stale requests from a previous run are ignored
+        self.cmd_shm = open_or_create_shm(SHM_CMD, np.zeros((N_CMD, 1), dtype=np.int32))
+        self.params_shm = open_or_create_shm(SHM_PARAMS, initial_params())
+        self.status_shm = open_or_create_shm(SHM_STATUS, np.zeros((N_STATUS, 1), dtype=np.float32))
         self.cmd_shm.set_data(np.zeros((N_CMD, 1), dtype=np.int32))
         self.params_shm.set_data(initial_params())     # LIVE_PARAMS from the config, until APPLY LIVE
         self.status_shm.set_data(np.zeros((N_STATUS, 1), dtype=np.float32))
