@@ -1,6 +1,6 @@
 config = {
     'RL': {
-        'iterations':  60,
+        'iterations':  50,
         'episode_length': 800,
         'warmup_episodes':  50,
         'max_sigma':  0.4, #should be around 1% of max stroke (when in CL, i.e. for papyrus max was around 0.3)? change up if no worky
@@ -25,7 +25,7 @@ config = {
         'train_warmup_percent': 0.2,
     },
     'integrator':{
-        'gain': 0.3, # only for the warm up
+        'gain': 0.1, # only for the warm up (0.3 on sky)
         'leak': 0.95, # also for RL
         'n_modes': 50,
         'integrator':False # use the integrator as policy
@@ -35,6 +35,7 @@ config = {
         'training_batch':128,
         'initial_std':0.01,
         'initial_mean':0,
+        'linear':True, # True: linear dynamics and policy (no activations, biases or policy clamp)
     },
     'save_and_load':{
         'save_models_pretrained': True,

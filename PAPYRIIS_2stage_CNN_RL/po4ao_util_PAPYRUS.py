@@ -7,9 +7,9 @@ class EfficientExperienceReplay():
     def __init__(self, state_shape, action_shape, max_size=100000, warmup_memory = 0):
         self.max_size = max_size
 
-        self.states = torch.empty(max_size, *state_shape).to("cuda:0")#.share_memory_()
-        self.next_states = torch.empty(max_size, *state_shape).to("cuda:0")#.share_memory_()
-        self.actions = torch.empty(max_size, *action_shape).to("cuda:0")#.share_memory_()
+        self.states = torch.empty(max_size, *state_shape).to("cpu")#.share_memory_()
+        self.next_states = torch.empty(max_size, *state_shape).to("cpu")#.share_memory_()
+        self.actions = torch.empty(max_size, *action_shape).to("cpu")#.share_memory_()
 
         self.len   = 0
         self.index_write = 0

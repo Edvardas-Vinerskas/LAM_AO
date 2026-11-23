@@ -128,6 +128,9 @@ class OOPAO_environment_PAPYRIIS(gym.Env):
         self.im_1st = read_mat('PAPYRIIS_2stage_CNN_RL/intMat_klOOPAO_synthetic_bin=1_F=500_rMod=5_20250604_0307.mat')['matrix_inf']
         self.pwfs.modulation = 5
         self.pwfs.cam.sensor = "CCD"
+
+        #you should always use single_pass = False, because switching sensors
+        #and doing more advanced stuff might not result in noise = 'off'
         self.calib_1st = InteractionMatrix(  ngs = self.ngs_1st,\
                             atm            = self.atm_1st,\
                             tel            = self.tel_1st,\
@@ -142,18 +145,6 @@ class OOPAO_environment_PAPYRIIS(gym.Env):
                             display=True,
                             single_pass = False)
 
-        self.calib_1st_pushonly = InteractionMatrix(  ngs = self.ngs_1st,\
-                                    atm            = self.atm_1st,\
-                                    tel            = self.tel_1st,\
-                                    dm             = self.dm_1st,\
-                                    wfs            = self.pwfs,\
-                                    M2C            = self.M2C_1st_CL,\
-                                    stroke         = 0.0001,\
-                                    phaseOffset    = 0,\
-                                    nMeasurements  = 1,\
-                                    noise          = 'off',
-                                    print_time=False,
-                                    display=True)
 
         self.pwfs.cam.sensor = "EMCCD"
         # self.calib_1st = CalibrationVault(self.im_1st[:, :self.modes_1st])

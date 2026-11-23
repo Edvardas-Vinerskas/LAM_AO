@@ -5,7 +5,7 @@ import time
 # import matplotlib
 # matplotlib.use('tkagg')
 # import matplotlib.pyplot as plt
-from po4ao_PAPYRUS.po4ao_config_PAPYRUS import config
+from PAPYRIIS_2stage_CNN_RL.po4ao_config_PAPYRUS import config
 
 n_filt = config['NN_models']['filters_per_layer'] #32
 
@@ -56,20 +56,23 @@ class ConvDynamics(nn.Module):
 
 #so they apply the mask directly in the dynamics model? and yet they don't use this mask
 class ConvDynamicsFast(nn.Module):
-    def __init__(self, mask, n_history):
+    def __init__(self, mask, n_history, linear=False):
         super().__init__()
 
         self.mask = mask
 
         self.n_history = n_history
 
+        # linear=True: no activations and no biases -> purely linear model (stacked 3x3 convs = one 7x7 conv)
+        # Identity keeps the Sequential indices the same as the non-linear version
+        bias = not linear
         self.net = nn.Sequential(
-            nn.Conv2d(n_history * 2, n_filt, 3, padding=1),
-            nn.LeakyReLU(),
+            nn.Conv2d(n_history * 2, n_filt, 3, padding=1, bias=bias),
+            nn.Identity() if linear else nn.LeakyReLU(),
 
-            nn.Conv2d(n_filt, n_filt, 3, padding=1),
-            nn.LeakyReLU(),
-            nn.Conv2d(n_filt, 1, 3, padding=1)
+            nn.Conv2d(n_filt, n_filt, 3, padding=1, bias=bias),
+            nn.Identity() if linear else nn.LeakyReLU(),
+            nn.Conv2d(n_filt, 1, 3, padding=1, bias=bias)
             # nn.Tanh()
         )
 
@@ -129,22 +132,25 @@ class ConvPolicyFast(nn.Module):
 #clamping changed to -1, 1
 #F is the KL reprojection matrix
 class ConvPolicyFastFast(nn.Module):
-    def __init__(self, xvalid, yvalid, F, n_history):
+    def __init__(self, xvalid, yvalid, F, n_history, linear=False):
         super().__init__()
 
         self.xvalid = xvalid
         self.yvalid = yvalid
 
         self.n_history = n_history
+        self.linear = linear
 
         self.register_buffer('F', F.unsqueeze(0)) #registers F as a non-trainable parameter
 
+        # linear=True: no activations, no biases and no output clamp -> purely linear controller
+        bias = not linear
         self.net = nn.Sequential(
-            nn.Conv2d(n_history * 2 -1, n_filt, 3, padding=1),
-            nn.LeakyReLU(),
-            nn.Conv2d(n_filt, n_filt, 3, padding=1),
-            nn.LeakyReLU(),
-            nn.Conv2d(n_filt, 1, 3, padding=1),
+            nn.Conv2d(n_history * 2 -1, n_filt, 3, padding=1, bias=bias),
+            nn.Identity() if linear else nn.LeakyReLU(),
+            nn.Conv2d(n_filt, n_filt, 3, padding=1, bias=bias),
+            nn.Identity() if linear else nn.LeakyReLU(),
+            nn.Conv2d(n_filt, 1, 3, padding=1, bias=bias),
             #nn.Tanh()
         )
 
@@ -152,7 +158,8 @@ class ConvPolicyFastFast(nn.Module):
         # feats shape(batch_size, 2 * n_history - 1, 10, 10) #because the current observation is part of the input but not the current action
         # out shape(batch_size, 1, 10, 10)
         out = self.net(feats * scaling_factor_up) / scaling_factor_up
-        out = out.clamp(-1, 1)
+        if not self.linear:
+            out = out.clamp(-1, 1)
 
         # should you also set the outside values to 0?
         out[:, :, self.xvalid, self.yvalid] = torch.matmul(self.F, out[:, :, self.xvalid, self.yvalid].squeeze(1).unsqueeze(2)).squeeze(-1).unsqueeze(1)
@@ -182,13 +189,13 @@ class EnsembleDynamics(nn.Module):
 
 class EnsembleDynamicsFast(nn.Module):
 
-    def __init__(self, mask, n_history, n_models=5):
+    def __init__(self, mask, n_history, n_models=5, linear=False):
         super().__init__()
         self.n_models = n_models
         self.models = nn.ModuleList([])
 
         for _ in range(n_models):
-            self.models.append(ConvDynamicsFast(mask, n_history))
+            self.models.append(ConvDynamicsFast(mask, n_history, linear=linear))
 
     def forward(self, feats):
         next_states = []

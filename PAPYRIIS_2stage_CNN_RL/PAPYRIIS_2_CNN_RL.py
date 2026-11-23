@@ -2,11 +2,15 @@
 Code adapted from Jalo Nousiainen
 All parameters are Jalo's (for now)
 
-For next week we do Jalo tests
+
 
 * automate the normalisation of inputs and outputs
 """
 
+
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from scipy import signal
 import torch
@@ -31,10 +35,9 @@ from PAPYRIIS_2stage_CNN_RL.po4ao_util_PAPYRUS import EfficientExperienceReplay,
 
 
 
-#TODO calculate the theoretical errors innit (for the noise, i.e. should be a few percent of the max stroke)
 sample_shape = 97 #pass it as variable
 
-#TODO you will need to do no scaling or different scaling here
+
 OOPAO_scaling_up   = 1e2
 OOPAO_scaling_down = 1e-2
 
@@ -61,6 +64,7 @@ warmup_memory        = config['replay_buffers']['warmup_memory']
 train_warmup_percent = config['replay_buffers']['train_warmup_percent']
 
 batch_size           = config['NN_models']['training_batch']
+linear_models        = config['NN_models']['linear']
 
 device = "cpu" #torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -438,43 +442,19 @@ def loss_fn(state,action):
 def main():
     env = OOPAO_environment_PAPYRIIS()
 
-    directory_name = f'PAPYRIIS_arcturus_noise_quantisation_pwfs_calibration_pupil_EMCCD'#{timestamp}
-    savedir = f'PAPYRIIS_2stage_CNN_RL/~2026-06-23/{directory_name}'
-    loaddir = f'PAPYRIIS_2stage_CNN_RL/~2026-06-23/saved'   # copy the models and replay buffers you want use here!!
+    #this one will be replacing the RL_3
+    directory_name = f'PAPYRIIS_arcturus_v2_15000/RL_400_linear'#{timestamp}
+    savedir = f'PAPYRIIS_2stage_CNN_RL/2026-09-23/{directory_name}'
+    loaddir = f'PAPYRIIS_2stage_CNN_RL/2026-09-23/saved'   # copy the models and replay buffers you want use here!!
 
     if not os.path.exists(savedir):
         os.makedirs(savedir)
     if not os.path.exists(loaddir):
         os.makedirs(loaddir)
 
-    #TODO you can run everything from this file!
-    #TODO calibrate with CCD and control with EMCCD?
-    #TODO for comparison use v10 maybe?
-    atm_OPD_1st = np.load(f"PAPYRIIS_2stage_CNN_RL/projected_atm_1st_stage/atm_OPDs_1st_r0_{env.atm_2nd.r0:.3f}_V0_{env.atm_2nd.V0:.3f}_L0_{env.atm_2nd.L0:.3f}_tboil_{env.atm_2nd.t_boiling[0]:.3f}_multi_layer.npz")
-    atm_OPD_1st = atm_OPD_1st["atm_OPDs_1st"]
-    print(f"PAPYRIIS_2stage_CNN_RL/projected_atm_1st_stage/atm_OPDs_1st_r0_{env.atm_2nd.r0:.3f}_V0_{env.atm_2nd.V0:.3f}_L0_{env.atm_2nd.L0:.3f}_tboil_{env.atm_2nd.t_boiling[0]:.3f}_multi_layer.npz")
-    
-    
+
     a = time.perf_counter()
-    first_stage_results = env.run_first_stage_loop(90000, atm_OPD_1st)
-    np.savez(f"{savedir}/results_1st_stage_r0_{env.atm_2nd.r0:.3f}_V0_{env.atm_2nd.V0:.3f}_L0_{env.atm_2nd.L0:.3f}_tboil_{env.atm_2nd.t_boiling[0]:.3f}_multi_layer.npz", **{
-        k: v for k, v in first_stage_results.items() 
-        if k != "config"
-    },
-        # Config fields flattened
-        nLoop=first_stage_results["config"].nLoop,
-        gainCL=first_stage_results["config"].gainCL,
-        leak=first_stage_results["config"].leak,
-        frame_delay=first_stage_results["config"].frame_delay,
-        photon_noise=first_stage_results["config"].photon_noise,
-    )
-    
-
-    #----------------------------------------------------1st stage residual entering to 2nd (PO4AO)#----------------------------------------------------
-
-    #PAPYRIIS_2stage_CNN_RL\~2026-06-01\PAPYRIIS_arcturus_nonoise\results_2nd_stage.npz
-    # loaddir_test = "PAPYRIIS_2stage_CNN_RL/~2026-06-23/PAPYRIIS_arcturus_noise_centralobs_quantisation_pwfs"
-    loaddir_test = savedir
+    loaddir_test = 'PAPYRIIS_2stage_CNN_RL/2026-09-23/PAPYRIIS_arcturus_v2_15000/first_stage_gain_05_fatmoss'
     print(f"{loaddir_test}/results_1st_stage_r0_{env.atm_2nd.r0:.3f}_V0_{env.atm_2nd.V0:.3f}_L0_{env.atm_2nd.L0:.3f}_tboil_{env.atm_2nd.t_boiling[0]:.3f}_multi_layer.npz")
 
     first_stage_results = np.load(f"{loaddir_test}/results_1st_stage_r0_{env.atm_2nd.r0:.3f}_V0_{env.atm_2nd.V0:.3f}_L0_{env.atm_2nd.L0:.3f}_tboil_{env.atm_2nd.t_boiling[0]:.3f}_multi_layer.npz")
@@ -514,9 +494,9 @@ def main():
 
 
     #-----------------------------------MODEL_initialisation-----------------------------------#
-    dynamics = EnsembleDynamicsFast(mask, n_history).to(device1).share_memory()
-    policy = ConvPolicyFastFast(xvalid1, yvalid1, KL_projection, n_history).to(device1).share_memory()
-    policy_copy = ConvPolicyFastFast(xvalid0, yvalid0, KL_projection, n_history).to(device0).eval().share_memory().eval()
+    dynamics = EnsembleDynamicsFast(mask, n_history, linear=linear_models).to(device1).share_memory()
+    policy = ConvPolicyFastFast(xvalid1, yvalid1, KL_projection, n_history, linear=linear_models).to(device1).share_memory()
+    policy_copy = ConvPolicyFastFast(xvalid0, yvalid0, KL_projection, n_history, linear=linear_models).to(device0).eval().share_memory().eval()
 
     #policy_copy_comp = torch.compile(policy_copy, mode="reduce-overhead") problem on windows TODO
 
@@ -755,7 +735,7 @@ def main():
 
 
 
-    np.savez(f"{savedir}/results_2nd_stage.npz",
+    np.savez(f"{savedir}/results_2nd_stage_r0_{env.atm_2nd.r0:.3f}_V0_{env.atm_2nd.V0:.3f}_L0_{env.atm_2nd.L0:.3f}_tboil_{env.atm_2nd.t_boiling[0]:.3f}_multi_layer.npz",
     # Concatenated across iterations
     all_2nd_stage_strehl    = all_2nd_stage_strehl,
     all_dm_commands         = all_dm_commands,
@@ -781,7 +761,7 @@ def main():
     
     b = time.perf_counter()
     print(b-a)
-    plt.show()
+    # plt.show()
 
 
 
