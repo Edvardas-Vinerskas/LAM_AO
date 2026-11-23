@@ -422,6 +422,10 @@ def KL_variance_calculator(modes, GG, frame_bounds):
 
     The temporal mean (static aberration, e.g. NCPA or the DM flat) is removed,
     so the static part mean @ GG @ mean is not included in any of the outputs.
+
+    #TODO you might want to also follow the static term of the process by calculating 
+        #the square of the mode mean (and multiplying by the diagonal)
+        #do some math, since previously you only derived the error formula assuming the mean = 0
     """
     GG_diag = np.diag(GG)
     modes_masked = np.asarray(modes[frame_bounds[0]:frame_bounds[1], :], dtype=np.float64)

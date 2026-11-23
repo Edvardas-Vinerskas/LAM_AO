@@ -98,3 +98,54 @@ CL1st_OL_2nd     = np.load(f'{loaddir}/2026-04-16T01_27_23_telemetry_2nd_data_CL
 
 #TODO do one run with M2C_KL and one with M2C from Mathieu for the CNN
 #TODO now I need to get the actual residual error from the vZWFS images and that will be that
+
+
+# %%
+
+
+# phase   = np.load('bench_sky_04_15/onsky_arcturus_1st200_2nd400_v10_20260416-020659/2026-04-16T02_17_55_telemetry_2nd_data_CL1OL2_phase.npy')
+OPDs    = np.load('bench_sky_04_15/onsky_arcturus_1st200_2nd400_v10_20260416-020659/2026-04-16T02_17_55_telemetry_2nd_data_CL1OL2_OPDs.npy')
+
+plt.figure()
+plt.imshow(OPDs[1000] - OPDs[1001])
+plt.colorbar()
+
+# %%
+
+
+
+import os
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+import dao
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ramaCnnLib import (NN_INTEGRATOR_SESSIONS, NN_INTEGRATORS, NN_M2A_SESSIONS, FramePrep,
+                        GraphIntegrators, GraphReconstructor, fast_model, load_config, load_meta,
+                        make_reconstructor, select_backend, set_rt_priority)
+
+
+def main():
+    cfg = load_config()
+    model_dir, stem = cfg["model_dir"], cfg["model_stem"]
+    meta = load_meta(model_dir, stem)
+    meta.setdefault("roi_corner", cfg["roi_corner"])
+    backend, device = select_backend(cfg, model_dir, stem)
+    print(f"ramaStartCNN: backend={backend} device={device} model_dir={model_dir}",
+          flush=True)
+
+    # Every CPU tensor op in FramePrep is tiny (four 42x42 crops of a 120x120
+    # ROI). torch defaults to one thread per core, and on this box the OpenMP
+    # fork/join barrier then costs ~40x the arithmetic it parallelises: 16.5 ms
+    # per frame on 64 threads against 0.3 ms on one. Set before the first op so
+    # the pool is sized once. Results are bit-for-bit identical either way --
+    # grid_sample is a gather and the only reduction is within one tile.
+    import torch
+    torch.set_num_threads(1)
+
+    prep = FramePrep(meta, device if backend == "torch" else "cpu")
+    recon = make_reconstructor(backend, device, cfg, model_dir, stem)

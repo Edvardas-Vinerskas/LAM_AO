@@ -57,41 +57,16 @@ def array_to_video(images, output_video, fps=30, cmap='viridis'):
         frame_colored = colormap(frame_norm)
         images_rgb[i] = (frame_colored[:, :, :3] * 255).astype(np.uint8)
 
-    imageio.mimsave(output_video, images_rgb, fps=fps, bitrate='5000k')
+    imageio.mimsave(output_video, images_rgb, fps=fps, bitrate='5000k', macro_block_size=2)
 
 
 # Usage
 # Load data
-"""hdul = fits.open('RL_TEST_0-CL-2026-02-23T16_43_44-Cube.fits')
-hdul.info()"""
 
-RL_telemetry_2nd = np.load('bench_loss_5_0324/test_warmup50_1st200_2nd400_scaling1e2_noise2ndstageonly_losspenalty01_iters300_v21/2026-03-30T20_00_35_telemetry_2nd_data.npy', allow_pickle = True)
-data = RL_telemetry_2nd.item()['CRED2Cube'] - RL_telemetry_2nd.item()['credDark']#hdul[0].data.astype(np.float32)
-xxx = RL_telemetry_2nd.item()['validPixels'].copy()
-xxx[xxx < 1e-5] = 0
-xxx[xxx >= 1e-5] = 1
-data = data * xxx[np.newaxis, :, :]
+phase   = np.load('bench_sky_04_15/onsky_arcturus_1st200_2nd400_v10_20260416-020659/2026-04-16T02_17_55_telemetry_2nd_data_CL1OL2_phase.npy')
 
-plt.figure()
-plt.imshow(data[0])
-plt.show()
+phase_mean_subtracted = phase - phase.mean(axis = 0)
 
-print(data.shape)
 
-"""# Crop all frames and zero out the first row of every frame
-corrected = data[:, 175:-175, 225:-225]
-corrected[:, 0, :] = 0  # zero first row of ALL frames
+array_to_video(phase_mean_subtracted, 'phase_arctan_mean_subtracted.mp4', fps=150)
 
-# Take corner crop and compute background reference
-corner_crop = data[:, 0:200, 0:225]  # shape: (5000, 200, 225)
-background = corner_crop.mean(axis=0)  # shape: (200, 225) - averaged over all frames
-
-# Subtract background mean (scalar) from every frame
-background_level = background.mean()  # single scalar value
-corrected -= background_level"""
-
-array_to_video(data, 'RL_ZWFS_cam.mp4', fps=150)
-
-#images = np.load('temp_save_dir/vZWFS_1st_2nd_noise_03_phnoise1_read_4_4_QE08_mag2_epis20_onlinetrain_40/DM_zer_OPD_array.npy')
-#print(images.shape)
-#array_to_video(images, 'temp_save_dir/vZWFS_1st_2nd_noise_03_phnoise1_read_4_4_QE08_mag2_epis20_onlinetrain_40/DM_zer_OPD_array_video_epis6_3seconds.mp4', fps=150)
