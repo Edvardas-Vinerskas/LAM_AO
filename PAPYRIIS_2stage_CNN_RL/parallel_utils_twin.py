@@ -49,8 +49,8 @@ def _import_oopao_symbols():
     with _silent_oopao_import():
         Source = importlib.import_module("OOPAO.Source").Source
         Telescope = importlib.import_module("OOPAO.Telescope").Telescope
-        ZWFS = importlib.import_module("OOPAO.ZWFS").ZWFS
-        ZWFS2 = importlib.import_module("OOPAO.ZWFS2").ZWFS2
+        ZWFS = importlib.import_module("vZWFS.ZWFS").ZWFS
+        ZWFS2 = importlib.import_module("vZWFS.ZWFS2").ZWFS2
         DeformableMirror = importlib.import_module("OOPAO.DeformableMirror").DeformableMirror
         MisRegistration = importlib.import_module("OOPAO.MisRegistration").MisRegistration
         Detector = importlib.import_module("OOPAO.Detector").Detector
@@ -60,8 +60,8 @@ def _import_all_oopao_symbols():
     with _silent_oopao_import():
         Source = importlib.import_module("OOPAO.Source").Source
         Telescope = importlib.import_module("OOPAO.Telescope").Telescope
-        ZWFS = importlib.import_module("OOPAO.ZWFS").ZWFS
-        ZWFS2 = importlib.import_module("OOPAO.ZWFS2").ZWFS2
+        ZWFS = importlib.import_module("vZWFS.ZWFS").ZWFS
+        ZWFS2 = importlib.import_module("vZWFS.ZWFS2").ZWFS2
         DeformableMirror = importlib.import_module("OOPAO.DeformableMirror").DeformableMirror
         MisRegistration = importlib.import_module("OOPAO.MisRegistration").MisRegistration
         Detector = importlib.import_module("OOPAO.Detector").Detector

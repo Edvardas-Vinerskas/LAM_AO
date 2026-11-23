@@ -12,7 +12,7 @@ from OOPAO.Telescope import Telescope
 from OOPAO.DeformableMirror import DeformableMirror
 from OOPAO.Atmosphere import Atmosphere
 from OOPAO.Pyramid import Pyramid
-from OOPAO.ZWFS2 import ZWFS2
+from vZWFS.ZWFS2 import ZWFS2
 from OOPAO.calibration.InteractionMatrix import InteractionMatrix
 from OOPAO.calibration.compute_KL_modal_basis import compute_KL_basis
 from OOPAO.calibration.CalibrationVault import CalibrationVault

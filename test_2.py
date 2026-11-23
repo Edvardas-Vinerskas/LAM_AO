@@ -8,8 +8,8 @@ if repo not in sys.path:
 from OOPAO.Source import Source
 from OOPAO.Telescope import Telescope
 from OOPAO.Atmosphere import Atmosphere
-from OOPAO.ZWFS2_v2 import ZWFS2
-from OOPAO.ZWFS_v2 import ZWFS
+from vZWFS.ZWFS2_v2 import ZWFS2
+from vZWFS.ZWFS_v2 import ZWFS
 from OOPAO.DeformableMirror import DeformableMirror
 from OOPAO.calibration.compute_KL_modal_basis import compute_KL_basis
 from OOPAO.calibration.InteractionMatrix import InteractionMatrix
